@@ -1,0 +1,1403 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Goal Galaxy</title>
+<meta name="description" content="Set a goal, like Cinematographer. Every class you take and every hour you study earns XP that lights up the galaxies of skills on your way there.">
+<meta property="og:title" content="Goal Galaxy">
+<meta property="og:description" content="Set a goal. Light up the galaxies of skills on your way there.">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#0b2725">
+<meta name="format-detection" content="telephone=no">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' shape-rendering='crispEdges'%3E%3Crect width='16' height='16' fill='%230b2725'/%3E%3Crect x='7' y='2' width='2' height='12' fill='%239eddd8'/%3E%3Crect x='2' y='7' width='12' height='2' fill='%239eddd8'/%3E%3Crect x='6' y='6' width='4' height='4' fill='%23fff'/%3E%3C/svg%3E">
+<!-- Goal Galaxy by Volta Rae (voltarae.com). Free and open source under the MIT License.
+     One self-contained page: everything runs in the visitor's browser. Your sky is kept in this
+     browser (localStorage) and can be saved to / opened from a .json file. Nothing is sent anywhere,
+     and nothing loads from other sites except the two fonts beside this file. -->
+<style>
+@font-face{font-family:'Bebas Neue';font-weight:400;font-display:swap;src:url(fonts/bebas-neue-latin-400-normal.woff2) format('woff2')}
+@font-face{font-family:'Courier Prime';font-weight:400;font-display:swap;src:url(fonts/courier-prime-latin-400-normal.woff2) format('woff2')}
+@font-face{font-family:'Courier Prime';font-weight:700;font-display:swap;src:url(fonts/courier-prime-latin-700-normal.woff2) format('woff2')}
+/* Layout: a typewritten grade card that plays like an 8-bit game, with a Skyrim-style sky of
+   skills. Your goal sits at the top of the sky; each skill is a galaxy you light up by learning.
+   Galaxies grow through a star's life (stardust to supernova) as they near their target level. */
+:root{
+  --paper:#ffffff; --ink:#0d0d0d; --gray:#5b5b5b; --rule:#d9d9d9; --soft:#f4f4f2;
+  --teal:#139a93; --teal-deep:#0b5d59; --teal-soft:#d6f1ee; --night:#0b2725; --rust:#c2562d; --good:#2f8a55; --late:#c2412d;
+  --head:'Bebas Neue','Arial Narrow',Impact,sans-serif;
+  --type:'Courier Prime','Courier New',Courier,monospace;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+[hidden]{display:none !important}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--type);font-size:16.5px;line-height:1.5;
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+a{color:var(--ink);text-underline-offset:3px}
+:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+.wrap{max-width:960px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--head);font-weight:400;letter-spacing:.02em;line-height:.92;margin:0;text-wrap:balance}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;border:2px solid var(--ink);background:var(--paper);padding:.5rem .9rem;font-weight:700;border-radius:0}
+button.fill{background:var(--ink);color:var(--paper)}
+button.teal{background:var(--teal);color:#fff;border-color:var(--ink);box-shadow:3px 3px 0 var(--ink)}
+button.teal:active,button.fill:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}
+button.fill{box-shadow:3px 3px 0 var(--teal)}
+button.plain{border-color:var(--rule)}
+button:disabled{opacity:.45;cursor:default}
+input,select,textarea{background:var(--paper);border:2px solid var(--ink);padding:.45rem .6rem;width:100%;min-width:0;border-radius:0}
+textarea{line-height:1.4}
+.num{font-variant-numeric:tabular-nums}
+.kick{font-size:.8rem;letter-spacing:.14em;text-transform:uppercase;color:var(--gray);margin:0}
+
+.top{display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;padding-block:1.1rem;border-bottom:4px solid var(--ink)}
+.brand{display:block;line-height:0}
+.top .mark{display:block;height:2.6rem;width:auto}
+.top nav{display:flex;gap:1.1rem;flex-wrap:wrap;font-size:.95rem}
+.top nav a{text-decoration:none;font-weight:700}
+.top nav a:hover{text-decoration:underline}
+
+.hero{padding-block:1.6rem .4rem;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,.8fr);gap:1rem;align-items:center}
+.hero-text{display:flex;flex-direction:column;gap:.6rem;min-width:0}
+@media (max-width:680px){.hero{grid-template-columns:minmax(0,1fr)}}
+.scene{position:relative;aspect-ratio:16/10;max-width:100%;background:var(--night);border:3px solid var(--ink);box-shadow:6px 6px 0 var(--teal);overflow:hidden}
+.scene .stars{position:absolute;inset:0;background-image:radial-gradient(#fff 1.5px,transparent 1.6px),radial-gradient(#9eddd8 1.5px,transparent 1.6px);background-size:46px 38px,71px 59px;background-position:7px 9px,30px 22px;opacity:.55;image-rendering:pixelated}
+.scene .neb{position:absolute;right:4%;bottom:6%;width:34%}
+.scene .proto{position:absolute;left:8%;top:8%;width:20%}
+.scene .glow{position:absolute;left:30%;top:6%;width:44%;aspect-ratio:1;border-radius:50%;background:radial-gradient(circle,#fff7dd 0,#9eddd8 28%,transparent 66%);opacity:.5}
+.scene .shoot{position:absolute;right:8%;top:12%;width:26%;height:3px;background:linear-gradient(90deg,transparent,#f6efd9);transform:rotate(-24deg);transform-origin:right}
+.scene .shoot::after{content:"";position:absolute;right:-3px;top:-3px;width:9px;height:9px;background:#fff}
+.scene .hero-star{position:absolute;left:34%;top:10%;width:34%}
+.scene .dust{position:absolute;left:5%;bottom:6%;width:26%}
+.life{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:.4rem;background:var(--night);border:3px solid var(--ink);padding:.8rem .5rem;color:var(--paper)}
+@media (max-width:560px){.life{grid-template-columns:repeat(3,minmax(0,1fr));row-gap:.9rem}}
+.life .st{display:flex;flex-direction:column;align-items:center;gap:.35rem;text-align:center;font-size:.78rem;line-height:1.25;opacity:.38}
+.life .st.past{opacity:.85}
+.life .st.now{opacity:1;font-weight:700}
+.life .st .ic{height:68px;width:100%;max-width:84px;display:block;padding:2px}
+.life .st .ic svg{width:100%;height:100%}
+.life .st.now .ic{outline:2px solid var(--teal);outline-offset:4px}
+.life .st small{display:block;font-weight:400;opacity:.8}
+.hero h1{font-size:clamp(3.4rem,13vw,7rem)}
+.hero h1 span{background:linear-gradient(transparent 62%,var(--teal-soft) 62%)}
+.hero p.lede{max-width:44rem;margin:0;color:var(--gray)}
+
+main{display:flex;flex-direction:column;gap:1.8rem;padding-block:1.2rem 3rem}
+.bar-row{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center}
+.tab{border-color:var(--rule);font-weight:400;padding:.35rem .75rem}
+.tab[aria-pressed="true"]{border-color:var(--ink);font-weight:700;background:var(--soft)}
+.note{border:2px dashed var(--ink);padding:.7rem .9rem;display:flex;gap:.8rem;align-items:center;justify-content:space-between;flex-wrap:wrap}
+
+.course h2{font-size:clamp(2.4rem,7vw,4rem)}
+.course .meta{color:var(--gray)}
+
+.board{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:1rem}
+@media (max-width:680px){.board{grid-template-columns:minmax(0,1fr)}}
+.card{position:relative;background:var(--night);color:var(--paper);padding:1.1rem;display:flex;flex-direction:column;gap:.7rem;border:3px solid var(--ink);box-shadow:6px 6px 0 var(--teal);overflow:hidden}
+.card .stars{position:absolute;inset:0;pointer-events:none;background-image:radial-gradient(#fff 1.4px,transparent 1.5px);background-size:53px 41px;opacity:.25}
+.card > *{position:relative}
+.card .big{font-family:var(--head);font-size:clamp(5rem,20vw,8rem);line-height:.82}
+.card .big small{font-size:.42em}
+.card .lab{font-size:.78rem;letter-spacing:.14em;text-transform:uppercase;opacity:.8}
+.flight{position:relative;height:64px;margin-right:56px}
+.flight .track{position:absolute;left:0;right:0;bottom:10px;height:10px;border:2px solid var(--paper)}
+.flight .track i{position:absolute;top:0;bottom:0;left:0}
+.flight .can{background:repeating-linear-gradient(90deg,#9eddd8 0 6px,transparent 6px 12px);opacity:.6}
+.flight .done{background:var(--teal)}
+.flight .fly{position:absolute;bottom:20px;width:46px;transform:translateX(-50%)}
+.flight .goal{position:absolute;right:-56px;bottom:0;width:44px}
+.legend{display:flex;gap:1rem;flex-wrap:wrap;font-size:.9rem}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:.6rem}
+.tile{border:2px solid var(--ink);padding:.7rem;display:flex;flex-direction:column;gap:.1rem;box-shadow:3px 3px 0 var(--ink);background:var(--paper)}
+.tile.stage{background:var(--teal-soft)}
+.tile .pic{height:64px;width:64px;display:flex;align-items:center;justify-content:center;background:var(--night);border:2px solid var(--ink);padding:5px;margin-bottom:.3rem}
+.tile .pic svg{max-height:100%;max-width:100%;width:auto}
+.tile .emo{font-size:1.5rem;line-height:1}
+.tile .v{font-family:var(--head);font-size:2.2rem;line-height:1}
+.tile .k{font-size:.85rem;color:var(--gray)}
+.tile .lv{font-size:.75rem;font-weight:700;background:var(--teal);color:#fff;align-self:flex-start;padding:0 .4rem}
+.warn{color:var(--late)}
+
+section.box{border-top:4px solid var(--ink);padding-top:.8rem;display:flex;flex-direction:column;gap:.8rem}
+.box-head{display:flex;justify-content:space-between;align-items:baseline;gap:.6rem;flex-wrap:wrap}
+.box-head h3{font-size:clamp(2rem,5vw,2.6rem)}
+.box-head h3 .e{font-size:.8em;margin-right:.25em}
+.sub{color:var(--gray);font-size:.9rem}
+.path{overflow-x:auto}
+.path svg{display:block;width:100%;min-width:520px;height:auto}
+
+.target{display:flex;flex-direction:column;gap:.6rem}
+.target .goal{display:flex;gap:.4rem;flex-wrap:wrap}
+.target .answer{font-size:1.15rem;max-width:44rem}
+.target .answer b{background:var(--teal-soft);padding:0 .25rem;box-shadow:inset 0 -3px 0 var(--teal)}
+
+.prizes{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:.6rem}
+.prize{border:2px solid var(--ink);box-shadow:4px 4px 0 var(--teal);text-align:left;font-weight:400;display:flex;flex-direction:column;gap:.2rem;padding:.7rem}
+.prize .w{font-family:var(--head);font-size:2.1rem;line-height:1;color:var(--teal-deep)}
+.prize:hover{transform:translate(-1px,-1px);box-shadow:5px 5px 0 var(--teal)}
+.plan{margin:0;padding-left:1.4rem;display:flex;flex-direction:column;gap:.35rem;max-width:44rem}
+
+.quests{display:flex;flex-direction:column}
+.q{display:grid;grid-template-columns:26px minmax(0,1fr) auto;gap:.8rem;align-items:center;padding:.75rem .2rem;border:0;border-top:1px solid var(--rule);background:none;text-align:left;font-weight:400;width:100%}
+.q:hover{background:var(--teal-soft)}
+.dia{width:18px;height:18px;transform:rotate(45deg);border:2px solid var(--ink);justify-self:center}
+.q[data-s="graded"] .dia{background:var(--ink)}
+.q[data-s="perfect"] .dia{background:var(--teal)}
+.q[data-s="submitted"] .dia{background:linear-gradient(135deg,var(--ink) 50%,transparent 50%)}
+.q[data-s="late"] .dia{border-color:var(--late);border-style:dashed}
+.q .t{font-weight:700;overflow-wrap:anywhere}
+.q .d{font-size:.85rem;color:var(--gray);display:flex;gap:.5rem;flex-wrap:wrap;align-items:center}
+.tag{font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;border:1.5px solid currentColor;padding:0 .35rem}
+.tag.boss{color:#fff;background:var(--ink);border-color:var(--ink)} .tag.late{color:var(--late)} .tag.xc{color:var(--good)}
+.q .r{text-align:right;font-size:.85rem;white-space:nowrap}
+.q .r b{display:block;font-size:1rem}
+
+.badges{display:flex;gap:.5rem;flex-wrap:wrap}
+.badges{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:.6rem}
+.badge{font-size:.85rem;border:2px dashed var(--rule);padding:.6rem;color:var(--gray);display:flex;flex-direction:column;align-items:center;text-align:center;gap:.3rem}
+.badge .e{font-size:2rem;line-height:1;filter:grayscale(1);opacity:.35}
+.badge.on .e{filter:none;opacity:1}
+.badge.on{border:2px solid var(--ink);background:var(--teal-soft);color:var(--ink);font-weight:700;box-shadow:3px 3px 0 var(--teal)}
+
+.sheet{position:fixed;inset:0;background:#0d0d0d99;display:flex;align-items:flex-end;justify-content:center;z-index:20}
+.sheet-card{background:var(--paper);width:100%;max-width:720px;max-height:94%;overflow:auto;border-top:4px solid var(--ink);
+  padding:1.2rem max(16px,env(safe-area-inset-right,0px)) calc(1.2rem + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:.9rem}
+@media (min-width:760px){.sheet{align-items:center}.sheet-card{border:4px solid var(--ink)}}
+.sheet-card h3{font-size:2.4rem}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:.6rem}
+label{display:flex;flex-direction:column;gap:.25rem;font-size:.85rem;color:var(--gray);min-width:0}
+label.check{flex-direction:row;align-items:center;gap:.5rem;color:var(--ink);font-size:1rem}
+label.check input{width:auto}
+.actions{display:flex;gap:.5rem;flex-wrap:wrap;justify-content:flex-end}
+.err{color:var(--late);font-size:.95rem}
+.preview{overflow-x:auto;border:2px solid var(--ink)}
+.preview table{border-collapse:collapse;width:100%;min-width:620px;font-size:.88rem}
+.preview th{text-align:left;font-weight:700;border-bottom:2px solid var(--ink);padding:.35rem}
+.preview td{border-bottom:1px solid var(--rule);padding:.25rem}
+.preview td input,.preview td select{border-width:1px;padding:.25rem .35rem}
+.preview td.c{width:2rem;text-align:center}
+.preview td.c input{width:auto}
+details summary{cursor:pointer;font-weight:700}
+.prompt{background:var(--soft);padding:.7rem;font-size:.82rem;white-space:pre-wrap;max-height:12rem;overflow:auto;border:1px solid var(--rule)}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(18px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--paper);padding:.6rem 1rem;z-index:30;font-weight:700;border:2px solid var(--teal);box-shadow:4px 4px 0 var(--teal)}
+.swarm{position:fixed;inset:0;pointer-events:none;z-index:25;overflow:hidden}
+.swarm svg{position:absolute;bottom:-60px;width:40px;height:auto;animation:rise 2.2s ease-in forwards}
+@keyframes rise{0%{transform:translate(0,0) rotate(0)}50%{transform:translate(30px,-50vh) rotate(8deg)}100%{transform:translate(-20px,-110vh) rotate(-6deg);opacity:0}}
+.pix{image-rendering:pixelated;display:block}
+.foot{border-top:4px solid var(--ink);padding-block:1rem 2rem;display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;font-size:.9rem}
+@media (prefers-reduced-motion:no-preference){
+  .flight .track i{transition:width .6s ease}
+  .flight .fly{transition:left .8s cubic-bezier(.3,1.4,.5,1)}
+  .twinkle{animation:twinkle 1.6s steps(2) infinite;transform-origin:center}
+  .boom{animation:boom 1.4s ease-in-out infinite;transform-origin:center}
+  .bob{animation:bob 3s ease-in-out infinite}
+  .scene .glow{animation:glow 2.4s ease-in-out infinite}
+}
+@keyframes twinkle{50%{transform:scale(.9);opacity:.85}}
+@keyframes boom{0%,100%{transform:scale(1) rotate(0);filter:drop-shadow(0 0 2px #ff7fc0)}50%{transform:scale(1.12) rotate(8deg);filter:drop-shadow(0 0 10px #f6c35a) drop-shadow(0 0 4px #ff7fc0)}}
+@keyframes bob{50%{transform:translateY(-6px)}}
+@keyframes glow{50%{opacity:.8}}
+@media (prefers-reduced-motion:reduce){.swarm{display:none}}
+
+/* ---- Goal Galaxy additions ---- */
+.views{display:flex;gap:.5rem;flex-wrap:wrap;padding-block:.9rem 0}
+.views .tab{font-size:1rem}
+.goalcard{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:1rem}
+@media (max-width:680px){.goalcard{grid-template-columns:minmax(0,1fr)}}
+.goalcard .card h2{font-size:clamp(2.6rem,9vw,4.6rem);color:#fff;word-break:break-word}
+.goalcard .why{opacity:.85;font-size:.95rem;margin:0}
+.meter{height:14px;border:2px solid var(--paper);position:relative}
+.meter i{position:absolute;left:0;top:0;bottom:0;background:var(--teal)}
+.meter.ink{border-color:var(--ink)}
+.lvl{display:flex;align-items:baseline;gap:.6rem;flex-wrap:wrap}
+.lvl .n{font-family:var(--head);font-size:clamp(3.4rem,12vw,5rem);line-height:.85}
+.sky{background:var(--night);border:3px solid var(--ink);box-shadow:6px 6px 0 var(--teal);overflow-x:auto;position:relative}
+.sky svg{display:block;width:100%;min-width:640px;height:auto}
+.sky [data-g]{cursor:pointer}
+.sky [data-g]:focus-visible{outline:none}
+.sky [data-g]:focus-visible .ring{stroke:#fff;stroke-width:3}
+.gal-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:.7rem}
+.gal{border:2px solid var(--ink);box-shadow:4px 4px 0 var(--gc,var(--teal));text-align:left;font-weight:400;display:grid;grid-template-columns:56px minmax(0,1fr);gap:.2rem .7rem;align-items:center;padding:.7rem;background:var(--paper)}
+.gal .pic{grid-row:span 3;width:56px;height:56px;background:var(--night);border:2px solid var(--ink);padding:4px;display:flex;align-items:center;justify-content:center}
+.gal .pic svg{width:100%;height:100%}
+.gal .nm{font-family:var(--head);font-size:1.7rem;line-height:1}
+.gal .sm{font-size:.82rem;color:var(--gray)}
+.gal.locked{opacity:.6;box-shadow:4px 4px 0 var(--rule);border-style:dashed}
+.chips{display:flex;gap:.4rem;flex-wrap:wrap}
+.chip{border:2px solid var(--ink);padding:.15rem .55rem;font-size:.85rem;background:var(--soft);box-shadow:2px 2px 0 var(--gc,var(--teal));font-weight:700}
+.stars-list{display:flex;flex-direction:column}
+.star-row{display:grid;grid-template-columns:30px minmax(0,1fr) auto;gap:.7rem;align-items:center;padding:.6rem .1rem;border-top:1px solid var(--rule)}
+.star-row .glyph{font-size:1.3rem;text-align:center;line-height:1}
+.star-row .glyph.b0{filter:grayscale(1);opacity:.3}.star-row .glyph.b1{opacity:.55}.star-row .glyph.b2{opacity:.85}
+.star-row .src{font-size:.8rem;color:var(--gray)}
+.star-row button{font-size:.85rem;padding:.25rem .55rem}
+.star-row button[aria-pressed="true"]{background:var(--teal);color:#fff}
+.ups{display:flex;flex-direction:column;gap:.3rem;margin:0;padding:0;list-style:none}
+.ups li{display:flex;justify-content:space-between;gap:1rem;border-bottom:1px dotted var(--rule);padding:.25rem 0}
+.log{display:flex;flex-direction:column}
+.log .q{grid-template-columns:34px minmax(0,1fr) auto}
+.log .q .k{font-size:1.4rem;text-align:center}
+.checks{display:flex;flex-direction:column;gap:.35rem;border:2px solid var(--ink);padding:.6rem}
+.swatches{display:flex;gap:.4rem;flex-wrap:wrap}
+.swatches label{flex-direction:row;align-items:center;gap:.3rem;color:var(--ink);border:2px solid var(--rule);padding:.2rem .45rem}
+.swatches input{width:auto}
+.swatches i{display:inline-block;width:16px;height:16px;border:2px solid var(--ink)}
+.banner{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top,0px));transform:translateX(-50%);z-index:31;background:var(--night);color:#fff;border:3px solid var(--ink);box-shadow:4px 4px 0 var(--teal);padding:.6rem 1.1rem;font-family:var(--head);font-size:1.7rem;letter-spacing:.04em;text-align:center;max-width:92vw}
+.banner small{display:block;font-family:var(--type);font-size:.85rem;letter-spacing:0;opacity:.85}
+.empty{border:2px dashed var(--ink);padding:1.2rem;display:flex;flex-direction:column;gap:.7rem;align-items:flex-start}
+.empty h3{font-size:2.2rem}
+
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <a class="brand" href="https://voltarae.com/" aria-label="Volta Rae"><svg class="mark" viewBox="0 0 64 64" role="img" aria-label="Volta Rae"><path d="M47 2.5 L15 39 L31.5 37 L16 62 L50 24 L33.5 26 Z" fill="none" stroke="currentColor" stroke-width="4" stroke-linejoin="miter" stroke-miterlimit="8"/></svg></a>
+    <nav aria-label="Sections" class="views" id="views"></nav>
+  </header>
+
+  <div class="hero">
+    <div class="hero-text">
+      <p class="kick">🎮 A learning game · by Volta Rae</p>
+      <h1><span>Goal Galaxy</span></h1>
+      <p class="lede">Set a goal, like Cinematographer. Every skill on the way is a galaxy. Your classes and the hours you study earn XP that lights up its stars, and each galaxy that levels up raises your own level.</p>
+    </div>
+    <div class="scene" id="scene" aria-hidden="true"></div>
+  </div>
+
+  <main>
+    <div id="note"></div>
+    <div id="game" style="display:flex;flex-direction:column;gap:1.8rem"></div>
+  </main>
+
+  <footer class="foot"><span>Your sky stays in this browser. Save a file to keep a copy or move to another device.</span><span>Free &amp; open source · &copy; 2026 <a href="https://voltarae.com/">Volta Rae</a></span></footer>
+</div>
+<div id="sheet" hidden></div>
+<div id="toast" class="toast" hidden role="status"></div>
+<div id="banner" class="banner" hidden role="status"></div>
+
+<script>
+"use strict";
+const $ = (s, r=document) => r.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const newId = () => Math.random().toString(36).slice(2, 10);
+const iso = d => { const z = new Date(d.getTime() - d.getTimezoneOffset()*6e4); return z.toISOString().slice(0,10); };
+const todayISO = () => iso(new Date());
+const BOSS = /exam|midterm|final|test\b|project/i;
+
+// Your level is your star's life. Every 100 XP is a level; 1,000 XP (100% locked in) goes supernova.
+const LEVELS = [["Stardust","dust"],["Nebula","nebula"],["Protostar","proto"],["Ignition","ignite"],["Young Star","young"],
+  ["Shining Star","shine"],["Bright Star","bright"],["Giant","giant"],["Supergiant","super"],["Hypergiant","hyper"]];
+// The life story strip: a real star's stages, said simply.
+const LIFE = [["dust","Stardust","Every star starts here"],["nebula","Nebula","Dust pulls together"],["proto","Protostar","It heats up"],
+  ["shine","Star","It ignites and shines"],["giant","Giant","It grows huge, with worlds in orbit"],["nova","Supernova","100%: it blazes"]];
+const lifeIndex = (lv, atTop) => atTop ? 5 : lv<=1 ? 0 : lv===2 ? 1 : lv<=4 ? 2 : lv<=7 ? 3 : 4;
+
+// ---------------- 8-bit sprites ----------------
+// Each sprite is a grid of letters (one letter = one pixel colour), drawn as crisp SVG squares:
+// no image files to load.
+const PAL = {k:"#0d0d0d", w:"#ffffff", c:"#f6efd9", l:"#9eddd8", t:"#139a93", d:"#0b5d59", b:"#6fb6ff", v:"#7a568c", m:"#e06a9a", o:"#ef8a4c", r:"#c2562d", y:"#f6c35a", n:"#8a2a22", R:"#ff5b4f", P:"#ff9e8a", B:"#3d74e0", G:"#5fd18a", Y:"#fff3a8", M:"#ff7fc0", V:"#a77bd8"};
+const SPR = {
+  dust: ["........................", "..l..............M......", "...l................y...", "b.lwl....VVVVVtVVV.ywy..", "...l...VV........VVVy...", ".....tVl..........wVV...", "....tV...lllllltMt..VV..", "....Mt.tllt.....MtM..VVt", "....M..ll...cc....Mt.tV.", "...MMt.lt.Yccctc..tM..M.", "w.tMt.tl..Yyy..tc..M..tV", "V.tM..llb.yYYy.tc..tM..V", "VtlM..tc..yYwy..ll.tM..V", "V...Mt.ct..yyY..lt.tM...", ".V..Mt.tcccccY.tl.tMMt..", "tV...Mt...cc...ll..Mt...", ".Vt.tMMM......llt..M....", "..Vwt..Mtllblllt..V.....", "...Vtt...........V......", "...bVVV.......bVV...M...", "..bwb.VVVtVttVtt...MwM..", "...b................M...", ".............b..........", ".............l.........."],
+  nebula: ["........................", "........................", ".....................l..", "....................lwl.", ".............Bvv.B...l..", "....B.B......vBVv.......", "...BVVVv....vvVmmVvB....", "..vmmMMmv.B.vVVmmVVVv...", "..vmMlMMVVVVmmmMmlmv.B..", "..vmmllMmVVVMmMllwlv....", "...mmMMMmmmmYmmmmlVVv...", "...VVmMMmmMYwYmmmmmmVvB.", "...BvmmmmmMMYMMmMMmMVvv.", "....vVmmMmmMMMmMMlMmVVB.", "...BvmmMmMMMMlMMMlMlmVvB", "....BvVVMwMmMMMwMmMMVVV.", "...v.vVmVMmMMMMmmMmVvVv.", ".....vvVVVVMmmmmmmVv....", ".....BvvvvvVmVmmvVvB....", "............BVVVvv....l.", "..l..........vvv.....lwl", ".lwl........B.........l.", "..l.....................", "........................"],
+  proto: ["..........bbbb..........", "..........tttt..........", "..........tttt..........", "...........ll...........", "...........ll...........", "...........ll...........", "...........YY...........", "...........oo...........", "...........yy...........", "......RRooyyyyyoRR......", "...RooyyyyYwYYyoyyooR...", ".RooyyY.oywwwYy..YyyooR.", ".RooyyY..yYwYYyy.YyyooR.", "...RooyyyYYYYYYyyyooR...", "......RRRooooooRRR......", "...........yyo..........", "...........wo...........", "...........YY...........", "...........ll...........", "...........ll...........", "...........ll...........", "..........tttt..........", "..........tttt..........", "..........bbbb.........."],
+  ignite: ["..........ywy...........", "...........y............", "...........w............", "...Y.....R.w........Y...", "....Y....oow..RRR..Y.y..", "..y..Y...oyw..ooR.Y.ywy.", ".ywy..Y..yYw.oyy.Y...y..", "..yRRR.Y.yYyyYYyY.......", "....RoyyYyyYYyyY....R...", ".....oyYyYYYYYYyyyooR...", "......oYyYwwwwYyYYyR....", ".......yYYwwwwYYyo......", "wwwwwwwyYYwwwwYYywwwwwww", "....RoyYyYwwwwYyYo......", "...RooyyyYYYYYYyYyo.....", "........YyyYYyyYyyoo....", ".......YyYYyyYy.Y.RRR...", "......Y.yyo.wYy..Y......", ".....Y.Roo..wyoR..Y.....", "....y..RoR..wRo....Y....", "...ywy......w.R.....y...", "....y.......w......ywy..", "............w.......y...", "............w..........."],
+  young: ["...........w............", "...........w............", "...b.......w.......b....", "..bwb......w......bwb...", "...b.......w.......b....", "...........w............", "......l...Vw..VV.l......", ".......lB.Bbwbb.l.......", ".......Vlbbbbbbl........", "........bbllllbbBV......", "......Bbblwwwwlbb.......", "......Bbblwwwwlb........", "wwwwwwwwblwwwwlbwwwwwwww", ".......bblwwwwlbbBV.....", "......Bbbbllllbb........", "........lbbbbbblV.......", ".......l.bbbwB.Bl.......", "......l.VV..wV...l......", "...b........w.......b...", "..bwb.......w......bwb..", "...b........w.......b...", "............w...........", "............w...........", "............w..........."],
+  shine: ["...........w............", "...........w....Y.......", "...y.......w...YY.......", "..ywy...y..w...Y........", "...y....yy.wo.YY........", ".........y.wy.Y.........", "......oo.yywYoYooo......", ".YY...oyYyyyyyYYyo......", "..YYY.oYyyYYYYyyy..yy...", "....YYYYyYYwwYYyyyyy....", ".......yYYwwwwYYyyo.....", "....oyYyYwwwwwwYyYyo....", "wwwwwwwyYwwwwwwYywwwwwww", "......oyYYwwwwYYy.......", "....yyyyyYYwwYYyYYYY....", "...yy..YyyYYYYyyY..YYY..", "......oyYYyyyyyyyo...YY.", "......oooYoYwoy.oo......", ".........Y.yw.y.........", "........YY.ow.yy....y...", "........Y...w..y...ywy..", ".......YY...w.......y...", ".......Y....w...........", "............w..........."],
+  bright: ["...........w............", "..l......l.w.l..........", ".lwl....tttwttttl.......", "..l..ltt...w....tt......", "....lt.....w...t..tl....", "...ltl.t...w..bt..lt....", "...t..lbbtlllllb.l..t...", "...t...llllccll.ltt.tl..", "..t.tttllcccccclll...t..", ".lt..bllccwwwwccl....t..", "..t...llcwwwwwwcllbt.tl.", ".lt...lccwwwwwwccllt.t..", "wwwwwwlccwwwwwwcclwwwwww", ".lt.ttllcwwwwwwcll...t..", "..t...blccwwwwccllb..tl.", "..t..tbllccccccl.bt..t..", "..lt.tbllllccllll...t...", "...t..l.blllllbbMl..t...", "....tl..tb..wt..t.ltl...", "....lt..t...w.....bl....", "......tt....w...ttl.....", ".......lttttwttt....M...", "..........l.w.l.........", "............w..........."],
+  giant: ["........................", "........................", "...l.................y..", "..lwl........R......ywy.", "...l....R...RRR......y..", "........ooR.yyo.........", "........yoyyyooR........", ".......oyYYYyyyoooo.....", "....RoyyYYwYYyyyoyR.....", "...tRyoyYwwwYYyyoottt...", ".ttt.oyYYwwwYYyyyoR.ttt.", "tt....yyYYwYYYyyyoyR..tt", "tt...oyyYYYYYYyyooyoR.tt", ".tttRyoyyYYYYyyyoooddtt.", "...tttttttttttttttdtttd.", "......ooyyyyyyyoodtlttd.", ".......oooyyooooodttttd.", ".......oyooooooooottttd.", ".......oo..yyy....dddd.c", "...........Roo..........", "............RR..........", "........................", "........................", "........................"],
+  super: ["........................", ".........Y..............", "........YyY.............", "........yooy....YY......", ".......YoRRRRRoooyY.....", "........ooooooRRRoY.....", "......RooyyyyoooRR......", "..YYyRoyyYYyyyoooRy.....", "..YyRooyYwYYyyyooRRtt...", ".ttoRoyYwwYYyyyoooRRttt.", "tt.yRoyyYYYYyyyoooRRoytt", "t.llRoyyYYYyyyyoooRRoy.t", "t.llRooyyyyyyyooooRddd.t", "ttddllllyyyyyyoolllGcGdt", ".dbbdRoolllllllloRRGGGd.", ".bwbbdttooooooootttddd..", ".bbbbdRttttttttttRR.....", ".dbbdyRRRoooooRRRRoY....", ".......YRRRRRRRRRoy.....", "........YRRRRR.yyyYY....", ".........oooY...........", ".........Yyy............", "..........Y.............", "........................"],
+  hyper: ["........................", "..l.......mm............", "...l......BB...mm.......", "...wlmm...bb..BBdd..w...", "....wwBB..ll..bdcmdw....", ".....wbbb.BBBBlldmdmm...", "......wlBBbbbbBB.wbBm...", "..mmmtBBblllllbbBlbB....", "..mBblBblccccllbbBbttt..", ".ttmblBlccwwccllbBB..tt.", "tt.mmBblcwwwwcllbbBlBBmt", "t.mmBBblcwwwccllbbBlbB.t", "t.mmlBblccwcccllbbBmmm.t", "ttBmmmbllcccclllbbmddddt", ".tdoodmmmmmmmmmmmmmdcGd.", "cdyooodbblllllbbbBldGGd.", ".doooodttttttttttttddd..", ".doooocccBbbbbBBlw......", "..dddd..llBBBBBbbbw.....", "....w..mbb..lb..BBmw....", "...w...mBm..bb...mm.w...", ".......mm...BB..........", ".............m..........", "........................"],
+  nova: [".M........VwV.V.......M.", "MwM....V...wM..V.....MwM", ".M....VwMMMw.MMMw.V...M.", "...w..MMyttwt.tyMM.Vw...", "....wM.toY.w.RYot.MwV...", "....Mwt.RY.wooY..twM.V..", "..VM.tw.oY.wyyY.Rwt.M...", ".VwMt..w.YYYwYYywR.tMw..", "..MyoRoowYYYYYYwy..oyMV.", "..MtYYYYYYwwwwYYYYYYtM.V", "V.Mt...YYwwwwwwYYyoR.M..", ".M.t...YYwwwwwwYYyo.t.MV", "wwwwwwwwYwwwwwwYwwwwwwww", "..M.RoyYYwwwwwwYY...tM.V", "V.MtYYYYYYwwwwYYYYYYtM..", ".VMyo..ywYYYYYYwRoRoyM..", "..wMt.RwoYYYwYY.w..tMwV.", "...M.tw..Yyyw.Yo.wt.MV..", "..V.Mwt..Yoow.YR.twM....", "...VwM.toYRRw.Yot.Mw....", "...wV.MMyt.twttyMM..w...", ".M...V.wMMM.wMMMwV....M.", "MwM.....V..Mw...V....MwM", ".M.......V.VwV........M."],
+};
+function spriteRects(name){
+  const g = SPR[name]; let out = "";
+  g.forEach((row,y) => { let x = 0; while (x < row.length){ const ch = row[x]; let n = 1; while (row[x+n] === ch) n++; if (PAL[ch]) out += `<rect x="${x}" y="${y}" width="${n}" height="1" fill="${PAL[ch]}"/>`; x += n; } });
+  return out;
+}
+function sprite(name, cls=""){
+  const g = SPR[name], w = g[0].length, h = g.length;
+  return `<svg class="pix ${cls}${name==="nova"?" boom":""}" viewBox="0 0 ${w} ${h}" shape-rendering="crispEdges" aria-hidden="true">${spriteRects(name)}</svg>`;
+}
+function drawScene(){
+  $("#scene").innerHTML = `<div class="stars"></div><div class="glow"></div>
+    <div class="shoot"></div><div class="dust bob">${sprite("dust","twinkle")}</div><div class="neb">${sprite("nebula")}</div>
+    <div class="proto bob" style="animation-delay:-1.2s">${sprite("proto","twinkle")}</div>
+    <div class="hero-star bob" style="animation-delay:-.6s">${sprite("bright","twinkle")}</div>`;
+}
+function swarm(){
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const box = document.createElement("div"); box.className = "swarm";
+  for (let i=0;i<7;i++){ const m = document.createElement("div"); m.innerHTML = sprite(["young","shine","bright","nova"][i%4],"twinkle"); const svg = m.firstChild;
+    svg.style.left = (8 + Math.random()*84) + "%"; svg.style.animationDelay = (i*0.12) + "s"; box.appendChild(svg); }
+  document.body.appendChild(box); setTimeout(()=>box.remove(), 3200);
+}
+const fmtDate = d => { const [y,m,dd] = d.split("-").map(Number); return new Date(y,m-1,dd).toLocaleDateString(undefined,{month:"short",day:"numeric"}); };
+const fmtN = n => String(Math.round(+n*100)/100);
+
+// ---------------- Grade math ----------------
+// Weighted: each category counts its weight; within it, points earned / points possible.
+// "Locked in" = what you've earned as a share of the whole course. "Still possible" = locked in + full marks on everything left.
+function stats(c){
+  const regular = c.quests.filter(q => !q.extra);
+  const cats = (c.categories||[]).filter(k => +k.weight > 0);
+  const weighted = cats.length > 0;
+  const groups = weighted ? cats.map(k => ({name:k.name, w:+k.weight})) : [{name:"", w:1}];
+  const inG = (q,g) => !weighted || q.cat === g.name;
+  let curNum=0, curDen=0, maxNum=0, secNum=0, wSum=0;
+  const impact = {};
+  for (const g of groups){
+    const items = regular.filter(q => inG(q,g));
+    const total = items.reduce((s,q)=>s+(+q.max||0),0);
+    const graded = items.filter(q => q.score!=null);
+    const gp = graded.reduce((s,q)=>s+(+q.max||0),0);
+    const xc = c.quests.filter(q => q.extra && q.score!=null && inG(q,g)).reduce((s,q)=>s+(+q.score||0),0);
+    const earned = graded.reduce((s,q)=>s+(+q.score||0),0) + xc;
+    wSum += g.w;
+    if (gp>0){ curNum += g.w*Math.min(earned/gp,1.5); curDen += g.w; }
+    if (total>0){
+      maxNum += g.w*Math.min((earned + total - gp)/total,1.5);
+      secNum += g.w*Math.min(earned/total,1.5);
+      for (const q of items) impact[q.id] = g.w*(+q.max||0)/total;
+    } else maxNum += g.w;
+    for (const q of c.quests.filter(q=>q.extra && inG(q,g))) impact[q.id] = total>0 ? g.w*(+q.max||0)/total : 0;
+  }
+  const pct = x => wSum ? x/wSum*100 : 0;
+  for (const k in impact) impact[k] = pct(impact[k]);
+  const secured = pct(secNum), max = pct(maxNum);
+  const xp = Math.round(Math.min(secured,100)*10);           // 1,000 XP = 100% of the course locked in
+  const level = Math.min(10, Math.floor(xp/100)+1);
+  let streak = 0;
+  for (const q of [...regular].filter(q=>q.score!=null).sort((a,b)=>(a.due||"9").localeCompare(b.due||"9"))) streak = +q.score >= +q.max ? streak+1 : 0;
+  return {current: curDen ? curNum/curDen*100 : null, secured, max, xp, level, streak,
+    perfect: c.quests.filter(q=>q.score!=null && +q.score>=+q.max).length,
+    done: c.quests.filter(q=>q.done).length, total: c.quests.length, impact, weighted,
+    stray: weighted && regular.some(q => !cats.find(k=>k.name===q.cat))};
+}
+function status(q){
+  if (q.score!=null) return +q.score >= +q.max ? "perfect" : "graded";
+  if (q.done) return "submitted";
+  if (q.due && q.due < todayISO()) return "late";
+  return "open";
+}
+
+// ---------------- Syllabus reader (runs in the browser, no AI) ----------------
+const MONTHS = {jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,sept:9,oct:10,nov:11,dec:12};
+const WORK = /\b(quiz|quizzes|exam|midterm|mid-term|final|test|assignment|homework|hw|project|paper|essay|lab|report|presentation|discussion|journal|reflection|critique|response|proposal|draft|portfolio|due|submit|turn in|screening|shoot|treatment|script|reading log|worksheet|problem set|pset|extra credit|bonus|write-up|writeup)\b/i;
+const DATE_RES = [
+  {re:/\b(\d{4})-(\d{1,2})-(\d{1,2})\b/, f:m=>[+m[1],+m[2],+m[3]]},
+  {re:/\b(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\b/, f:m=>[m[3]?(+m[3]<100?2000+ +m[3]:+m[3]):null,+m[1],+m[2]]},
+  {re:/\b(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?\s+(\d{1,2})(?:st|nd|rd|th)?(?:,?\s+(\d{4}))?\b/i, f:m=>[m[3]?+m[3]:null,MONTHS[m[1].toLowerCase()],+m[2]]},
+  {re:/\b(\d{1,2})(?:st|nd|rd|th)?\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?(?:,?\s+(\d{4}))?\b/i, f:m=>[m[3]?+m[3]:null,MONTHS[m[2].toLowerCase()],+m[1]]},
+];
+function findDate(line, year, firstDay){
+  for (const {re,f} of DATE_RES){
+    const m = line.match(re); if (!m) continue;
+    let [y,mo,d] = f(m); if (!(mo>=1&&mo<=12&&d>=1&&d<=31)) continue;
+    if (!y){
+      y = year;
+      if (firstDay){ const fm = +firstDay.slice(5,7); if (mo < fm - 3) y = +firstDay.slice(0,4) + 1; else y = +firstDay.slice(0,4); }
+    }
+    return {due:`${y}-${String(mo).padStart(2,"0")}-${String(d).padStart(2,"0")}`, text:m[0]};
+  }
+  const w = line.match(/\bweek\s*(\d{1,2})\b/i);
+  if (w && firstDay){ const base = new Date(firstDay+"T12:00:00"); base.setDate(base.getDate() + (+w[1]-1)*7); return {due:iso(base), text:null, week:true}; }
+  return null;
+}
+function readSyllabus(text, firstDay){
+  const lines = text.split(/\r?\n/).map(l=>l.replace(/\s+/g," ").trim()).filter(Boolean);
+  const year = firstDay ? +firstDay.slice(0,4) : new Date().getFullYear();
+  // 1. Grading breakdown: "Quizzes ..... 20%", "Final Exam: 25 %", "Participation – 10%"
+  const categories = [];
+  for (const l of lines){
+    const m = l.match(/^[-•*\d.)\s]*([A-Za-z][A-Za-z &/,'()-]{2,48}?)\s*(?:[:.\-–—|=]+\s*)?\(?\s*(\d{1,3}(?:\.\d+)?)\s*%\s*\)?\s*$/);
+    if (!m) continue;
+    const name = m[1].replace(/[\s:.\-–—|=(]+$/,"").trim();
+    if (/total|grade scale|^[a-f][+-]?$/i.test(name) || +m[2] > 100) continue;
+    if (!categories.find(k=>k.name.toLowerCase()===name.toLowerCase())) categories.push({name, weight:+m[2]});
+  }
+  const sum = categories.reduce((s,k)=>s+k.weight,0);
+  if (categories.length && (sum < 60 || sum > 140)) categories.length = 0;   // looked like a letter-grade scale, not a breakdown
+  // 2. Graded work: lines with a date (or week) and a work word, or with points
+  const quests = [];
+  for (const l of lines){
+    const pts = l.match(/(\d{1,4}(?:\.\d+)?)\s*(?:pts?|points?)\b/i);
+    const dt = findDate(l, year, firstDay);
+    if (!WORK.test(l) || !(dt || pts)) continue;
+    if (/%\s*$/.test(l) && !dt) continue;                                // a breakdown line, already counted
+    let title = l;
+    if (dt && dt.text) title = title.replace(dt.text, " ");
+    title = title.replace(/\bextra credit\b:?/i,"Extra credit:").replace(/\b(mon|tue|tues|wed|thu|thur|thurs|fri|sat|sun)[a-z]*\.?,?\s*/ig," ")
+      .replace(/\bweek\s*\d{1,2}\b[:.\-–—]?/i," ").replace(/\(?\s*\d{1,4}(?:\.\d+)?\s*(?:pts?|points?)\s*\)?/i," ")
+      .replace(/\bdue\b:?/i," ").replace(/^[\s\-–—•*:|,.)]+|[\s\-–—•*:|,.(]+$/g,"").replace(/\s{2,}/g," ").trim();
+    if (title.length < 3) continue;
+    if (title.length > 90) title = title.slice(0,87).replace(/\s\S*$/,"") + "…";
+    quests.push({id:newId(), title, cat:guessCat(title, categories), due:dt?dt.due:null, max:pts?+pts[1]:100, score:null, done:false,
+      extra:/extra credit|bonus/i.test(l), keep:true, pts:!!pts});
+  }
+  // Items with no points listed take the points of others in their category (Quiz 2 like Quiz 1), else 100
+  for (const q of quests){ if (q.pts) continue; const sib = quests.find(o=>o.pts && o.cat===q.cat && !o.extra); if (sib) q.max = sib.max; }
+  quests.forEach(q=>delete q.pts);
+  // 3. Drop exact repeats
+  const seen = new Set(); const uniq = quests.filter(q => { const k=(q.title+q.due).toLowerCase(); if (seen.has(k)) return false; seen.add(k); return true; });
+  const name = (lines.find(l => /^[A-Z]{2,5}\s?-?\d{2,4}[A-Z]?\b/.test(l)) || lines[0] || "My course").slice(0,80);
+  const code = (name.match(/^[A-Z]{2,5}\s?-?\d{2,4}[A-Z]?/)||[""])[0];
+  const instr = (lines.find(l=>/^(instructor|professor|prof\.|teacher)\b/i.test(l))||"").replace(/^(instructor|professor|prof\.|teacher)\s*[:\-–]?\s*/i,"").slice(0,60);
+  return {name: code ? name.slice(code.length).replace(/^[\s:\-–—]+/,"") || name : name, code, instructor:instr, categories, quests:uniq};
+}
+function guessCat(title, cats){
+  if (!cats.length) return "";
+  const t = title.toLowerCase();
+  const stem = w => w.toLowerCase().replace(/(zes|es|s)$/,"");
+  let best = null, score = 0;
+  for (const k of cats){
+    const words = k.name.toLowerCase().split(/[^a-z]+/).filter(w=>w.length>2);
+    const s = words.reduce((n,w)=> n + (t.includes(stem(w)) ? 1 : 0), 0);
+    if (s > score){ score = s; best = k.name; }
+  }
+  if (best) return best;
+  const families = [[/quiz/,/quiz/],[/exam|midterm|final|test/,/exam|midterm|final|test/],[/homework|hw|assignment|worksheet|problem set/,/homework|assignment|hw/],
+    [/paper|essay|report|reflection|response|journal/,/paper|essay|writ|report/],[/project|portfolio|shoot|screening/,/project|portfolio|production/],[/lab/,/lab/],[/discussion|presentation/,/discussion|participation|presentation/]];
+  for (const [tRe,kRe] of families) if (tRe.test(t)){ const k = cats.find(k=>kRe.test(k.name.toLowerCase())); if (k) return k.name; }
+  return cats[0].name;
+}
+
+function questRow(q,s,soon){
+  const st = status(q), tags = [];
+  if (BOSS.test(q.title+" "+q.cat)) tags.push(`<span class="tag boss">⚔️ Boss</span>`);
+  if (q.extra) tags.push(`<span class="tag xc">✨ Extra credit</span>`);
+  if (st==="late") tags.push(`<span class="tag late">⏰ Overdue</span>`);
+  else if (!q.done && soon(q.due)) tags.push(`<span class="tag">📅 This week</span>`);
+  const right = q.score!=null ? `<b class="num">${fmtN(q.score)}/${fmtN(q.max)}</b>${Math.round(q.score/q.max*100)}%`
+    : q.done ? `<b>Turned in</b>awaiting grade` : `<b class="num">${fmtN(q.max)} pts</b>${(s.impact[q.id]||0).toFixed(1)}% of grade`;
+  return `<button class="q" data-q="${esc(q.id)}" data-s="${st}"><span class="dia" aria-hidden="true"></span>
+    <span style="min-width:0"><span class="t">${esc(q.title)}</span><span class="d"><span>${q.due?fmtDate(q.due):"No date"}</span><span>${esc(q.cat||"")}</span>${tags.join("")}</span></span>
+    <span class="r">${right}</span></button>`;
+}
+function targetLine(s){
+  const left = s.max - s.secured;                       // share of the course still to be graded
+  if (left <= 0.05) return s.secured >= target - 0.05 ? `Done. You finished at <b>${s.secured.toFixed(1)}%</b>.` : `Everything's graded. You finished at ${s.secured.toFixed(1)}%.`;
+  if (s.max < target - 0.05) return `${target}% is out of reach without extra credit: the most you can finish with is ${s.max.toFixed(1)}%. Look for extra credit, or aim for <b>${Math.floor(s.max)}%</b>.`;
+  const need = Math.max(0, (target - s.secured) / left * 100);
+  return need >= 99.95 ? `You need <b>a perfect score on everything left</b>. No points to spare, so every quest gets your full effort.`
+    : `You need an average of <b>${need.toFixed(1)}%</b> on everything left to finish at ${target}%.`;
+}
+function weekPlan(c,s){
+  const today = todayISO(), wk = new Date(today); wk.setDate(wk.getDate()+7); const end = iso(wk);
+  const late = c.quests.filter(q=>status(q)==="late");
+  const week = c.quests.filter(q=>!q.done && q.due && q.due>=today && q.due<=end).sort((a,b)=>(s.impact[b.id]||0)-(s.impact[a.id]||0));
+  const xc = c.quests.filter(q=>q.extra && !q.done);
+  const steps = [
+    ...late.map(q=>`Turn in <b>${esc(q.title)}</b>. It's overdue; ask whether late work still earns points.`),
+    ...week.map(q=>`<b>${esc(q.title)}</b>, due ${fmtDate(q.due)}, worth ${(s.impact[q.id]||0).toFixed(1)}% of your grade.`),
+  ];
+  if (s.max < 99.95 && xc.length) steps.push(`Pick up extra credit: <b>${esc(xc[0].title)}</b>.`);
+  if (!steps.length) return `<p class="sub">Nothing due in the next 7 days. Get ahead on the biggest quest below.</p>`;
+  return `<div><p class="kick" style="margin-bottom:.4rem">📅 This week's plan</p><ol class="plan">${steps.slice(0,6).map(x=>`<li>${x}</li>`).join("")}</ol></div>`;
+}
+function badges(c,s){
+  const boss = c.quests.filter(q=>BOSS.test(q.title+" "+q.cat) && q.score!=null);
+  return [
+    {e:"✨", name:"First quest turned in", on:s.done>0},
+    {e:"💯", name:"Perfect score", on:s.perfect>0},
+    {e:"🔥", name:"3 perfect in a row", on:s.streak>=3},
+    {e:"⚔️", name:"Boss beaten: 90%+ on an exam or project", on:boss.some(q=>q.score/q.max>=.9)},
+    {e:"⏰", name:"Nothing overdue", on:s.done>0 && !c.quests.some(q=>status(q)==="late")},
+    {e:"🌟", name:"Ignited: 500 XP", on:s.xp>=500},
+    {e:"💥", name:"Supernova: 100%", on:s.secured>=99.95},
+  ];
+}
+function pathSVG(c,s){
+  const qs = [...c.quests].filter(q=>!q.extra).sort((a,b)=>(a.due||"9").localeCompare(b.due||"9"));
+  if (!qs.length) return `<p class="sub">Add quests to see your path.</p>`;
+  const W=760,H=250,L=46,R=18,T=38,B=34,n=qs.length;
+  const x = i => L + (n===1 ? (W-L-R)/2 : i*(W-L-R)/(n-1));
+  const y = v => T + (1 - Math.min(v,100)/100)*(H-T-B);
+  let sec=0, best=0; const pts=[], ideal=[];
+  qs.forEach((q,i)=>{ const imp=s.impact[q.id]||0; best+=imp; if (q.score!=null) sec+=imp*Math.min(q.score/q.max,1.5); pts.push([x(i),y(sec),q]); ideal.push([x(i),y(best)]); });
+  const line = a => a.map((p,i)=>(i?"L":"M")+p[0].toFixed(1)+" "+p[1].toFixed(1)).join(" ");
+  const grid = [0,25,50,75,100].map(v=>`<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="#d9d9d9"/><text x="${L-8}" y="${y(v)+4}" text-anchor="end" font-size="12" fill="#5b5b5b">${v}%</text>`).join("");
+  const today = todayISO(); let ti = qs.findIndex(q=>(q.due||"9")>=today); if (ti<0) ti=n-1;
+  const tx = ti===0 ? x(0) : (x(ti-1)+x(ti))/2;
+  const dots = pts.map(([px,py,q])=>{ const st=status(q); const f = st==="perfect"?"#139a93":st==="graded"?"#0d0d0d":"#ffffff"; const k = st==="late"?"#c2412d":"#0d0d0d";
+    return `<rect x="${(px-5).toFixed(1)}" y="${(py-5).toFixed(1)}" width="10" height="10" transform="rotate(45 ${px.toFixed(1)} ${py.toFixed(1)})" fill="${f}" stroke="${k}" stroke-width="2"><title>${esc(q.title)}</title></rect>`; }).join("");
+  return `<svg viewBox="0 0 ${W} ${H}" font-family="'Courier Prime','Courier New',monospace" role="img" aria-label="Grade locked in over the term: ${s.secured.toFixed(1)} percent">
+    ${grid}
+    <path d="${line(ideal)}" fill="none" stroke="#5b5b5b" stroke-width="1.5" stroke-dasharray="5 5"/>
+    <path d="${line(pts)} L${pts.at(-1)[0].toFixed(1)} ${y(0)} L${pts[0][0].toFixed(1)} ${y(0)} Z" fill="#d6f1ee"/>
+    <path d="${line(pts)}" fill="none" stroke="#0b5d59" stroke-width="3"/>
+    <g transform="translate(${W-R-34} ${y(100)-30}) scale(1.5)">${spriteRects("nova")}</g>
+    <g transform="translate(${(pts[ti>0?ti-1:0][0]-18).toFixed(1)} ${(pts[ti>0?ti-1:0][1]-40).toFixed(1)}) scale(1.5)">${spriteRects(stats(c).level ? LEVELS[stats(c).level-1][1] : "shine")}</g>
+    <line x1="${tx}" x2="${tx}" y1="${T}" y2="${y(0)}" stroke="#c2412d" stroke-width="1.5"/>
+    <text x="${Math.min(tx+5,W-R-48)}" y="${H-B+20}" font-size="12" fill="#c2412d">TODAY</text>
+    <text x="${L}" y="${H-B+20}" font-size="12" fill="#5b5b5b">${qs[0].due?fmtDate(qs[0].due):""}</text>
+    <text x="${W-R}" y="${H-B+20}" text-anchor="end" font-size="12" fill="#5b5b5b">${qs.at(-1).due?fmtDate(qs.at(-1).due):""}</text>
+    ${dots}
+  </svg><p class="sub" style="margin:.3rem 0 0">Solid line: grade locked in. Dashed line: a perfect run. Teal diamond: a perfect score. The star is where you are now; the supernova is 100%.</p>`;
+}
+
+// ---------------- Pop-up sheets ----------------
+function openSheet(html, mount){
+  const sh = $("#sheet");
+  sh.innerHTML = `<div class="sheet" data-close="1"><div class="sheet-card" role="dialog" aria-modal="true">${html}</div></div>`;
+  sh.hidden = false; mount && mount(sh.querySelector(".sheet-card"));
+  const f = sh.querySelector("input,textarea,select"); f && f.focus();
+}
+function closeSheet(){ $("#sheet").hidden = true; $("#sheet").innerHTML = ""; }
+function armed(btn, label, fn){ if (btn.dataset.armed){ fn(); return; } btn.dataset.armed = "1"; btn.textContent = label; }
+
+function questSheet(q, isNew){
+  const c = cur();
+  const cats = [...new Set([...(c.categories||[]).map(k=>k.name), q.cat].filter(Boolean))];
+  const outs = S.galaxies.filter(g=>(c.galaxies||[]).includes(g.id) || g.outcomes.some(o=>o.from===c.id||o.id===q.outcome)).flatMap(g=>g.outcomes.map(o=>[g,o]));
+  openSheet(`
+    <p class="kick">${isNew?"New quest":esc(q.cat||"Quest")}</p>
+    <h3>${isNew?"Add a quest":esc(q.title)}</h3>
+    <label>Title<input id="f-title" value="${esc(q.title)}"></label>
+    <div class="row">
+      <label>Due date<input id="f-due" type="date" value="${esc(q.due||"")}"></label>
+      <label>Category${cats.length?`<select id="f-cat">${cats.map(k=>`<option ${k===q.cat?"selected":""}>${esc(k)}</option>`).join("")}</select>`:`<input id="f-cat" value="${esc(q.cat||"")}">`}</label>
+    </div>
+    <div class="row">
+      <label>Your score<input id="f-score" inputmode="decimal" placeholder="Not graded yet" value="${q.score??""}"></label>
+      <label>Out of<input id="f-max" inputmode="decimal" value="${q.max??100}"></label>
+    </div>
+    <label>Star it lights (learning outcome)<select id="f-out"><option value="">None: XP is shared by the class's galaxies</option>${outs.map(([g,o])=>`<option value="${esc(o.id)}" ${o.id===q.outcome?"selected":""}>${esc(g.emoji)} ${esc(o.text)}</option>`).join("")}</select></label>
+    <label class="check"><input id="f-done" type="checkbox" ${q.done?"checked":""}> Turned in</label>
+    <label class="check"><input id="f-extra" type="checkbox" ${q.extra?"checked":""}> Extra credit</label>
+    <div id="f-err" class="err" role="alert"></div>
+    <div class="actions">${isNew?"":`<button class="plain" id="f-del">Delete</button>`}<button class="plain" data-close="1">Cancel</button><button class="fill" id="f-save">Save</button></div>`,
+  card => {
+    const del = card.querySelector("#f-del");
+    if (del) del.onclick = () => armed(del, "Tap again to delete", () => { c.quests = c.quests.filter(x=>x.id!==q.id); closeSheet(); commit(); toast("Quest deleted"); });
+    card.querySelector("#f-save").onclick = () => {
+      const title = $("#f-title").value.trim(), max = parseFloat($("#f-max").value), sv = $("#f-score").value.trim(), score = sv==="" ? null : parseFloat(sv);
+      if (!title) return $("#f-err").textContent = "Give the quest a title.";
+      if (!(max > 0)) return $("#f-err").textContent = "“Out of” needs a number above 0.";
+      if (sv !== "" && !(score >= 0)) return $("#f-err").textContent = "Your score needs to be a number, or leave it blank.";
+      const wasPerfect = q.score!=null && q.score>=q.max;
+      Object.assign(q, {title, max, score, due:$("#f-due").value||null, cat:$("#f-cat").value, done:$("#f-done").checked || score!=null, extra:$("#f-extra").checked, outcome:$("#f-out").value||null});
+      if (isNew) c.quests.push(q);
+      closeSheet(); commit();
+      const perfectNow = score!=null && score>=max && !wasPerfect;
+      if (perfectNow) swarm();
+      toast(perfectNow ? "💯 Perfect score! Your sky just got brighter." : q.done ? "📜 Quest logged" : "Saved");
+    };
+  });
+}
+
+function courseSheet(c){
+  openSheet(`
+    <p class="kick">Class</p><h3>Edit class</h3>
+    <label>Course name<input id="c-name" value="${esc(c.name)}"></label>
+    <div class="row"><label>Course code<input id="c-code" value="${esc(c.code||"")}"></label><label>Term<input id="c-term" value="${esc(c.term||"")}"></label></div>
+    <label>Instructor<input id="c-inst" value="${esc(c.instructor||"")}"></label>
+    <label>Grade breakdown: one per line, like “Quizzes, 20”. Leave it empty if the class is graded by total points.
+      <textarea id="c-cats" rows="6">${esc((c.categories||[]).map(k=>`${k.name}, ${k.weight}`).join("\n"))}</textarea></label>
+    <div id="c-err" class="err" role="alert"></div>
+    <div class="actions"><button class="plain" id="c-del">Delete class</button><button class="plain" data-close="1">Cancel</button><button class="fill" id="c-save">Save</button></div>`,
+  card => {
+    const del = card.querySelector("#c-del");
+    del.onclick = () => armed(del, "Tap again to delete class", () => {
+      S.courses = S.courses.filter(x=>x.id!==c.id); activeCourse = S.courses[0]?.id||null; closeSheet(); commit(); toast("Class deleted"); });
+    card.querySelector("#c-save").onclick = () => {
+      const cats = [];
+      for (const line of $("#c-cats").value.split("\n").map(l=>l.trim()).filter(Boolean)){
+        const m = line.match(/^(.*?)[,:\t]\s*([\d.]+)\s*%?$/);
+        if (!m) return $("#c-err").textContent = `Couldn't read “${line}”. Write it like “Quizzes, 20”.`;
+        cats.push({name:m[1].trim(), weight:+m[2]});
+      }
+      (c.categories||[]).forEach((k,i)=>{ if (cats[i] && cats[i].name !== k.name) c.quests.forEach(q=>{ if (q.cat===k.name) q.cat = cats[i].name; }); });
+      Object.assign(c, {name:$("#c-name").value.trim()||c.name, code:$("#c-code").value.trim(), term:$("#c-term").value.trim(), instructor:$("#c-inst").value.trim(), categories:cats});
+      const sum = cats.reduce((n,k)=>n+k.weight,0);
+      closeSheet(); commit(); toast(cats.length && Math.abs(sum-100) > .5 ? `The weights add up to ${sum}%. Grades are scaled to that.` : "Class saved");
+    };
+  });
+}
+
+// =====================================================================
+// Goal Galaxy: the sky of skills
+// =====================================================================
+// How it plays (like Skyrim's skills):
+// - Your GOAL (say, Cinematographer) sits at the top of the sky.
+// - Each skill on the way is a GALAXY with a target level (1 to 100).
+// - Learning earns XP in a galaxy: graded class work (a whole class at 100% = 1,000 XP, split across
+//   the galaxies the class feeds) and logged study (self-study, workshops, certificates).
+// - Each LEARNING OUTCOME is a star in a galaxy. XP tagged to it makes it brighter; "I've got this"
+//   lights it fully and adds a bonus.
+// - Every time a galaxy levels up, you earn character XP equal to its new level, and that raises
+//   YOUR level (Skyrim's own formula: level L to L+1 takes (L+3) x 25).
+// - A galaxy can open only after another reaches a level ("Color opens at Lighting 15"): learning in
+//   one area unlocks the next.
+
+const KEY = "goal-galaxy-v1", OLD_KEY = "syllabus-quest-v1";
+const XP_TO_NEXT = L => 10 + 2*L;               // galaxy level L to L+1
+const OVERALL_TO_NEXT = L => (L+3)*25;          // your level L to L+1 (Skyrim)
+const MASTER_BONUS = 50;
+const KINDS = {
+  study:    {e:"📖", name:"Self-study",        rate:20, hint:"Tutorials, books, practice: 20 XP an hour"},
+  workshop: {e:"🛠️", name:"Workshop",          rate:30, hint:"A workshop, seminar or hands-on session: 30 XP an hour"},
+  cert:     {e:"📜", name:"Certificate earned", rate:20, flat:250, hint:"250 XP, plus 20 XP for each hour it took"},
+};
+const COLORS = [["Teal","#139a93"],["Blue","#6fb6ff"],["Pink","#ff7fc0"],["Violet","#a77bd8"],["Orange","#ef8a4c"],["Green","#5fd18a"]];
+const STAGE_NAME = {dust:"Stardust", nebula:"Nebula", proto:"Protostar", shine:"Star", giant:"Giant", nova:"Supernova"};
+
+let S = null;                 // the whole sky: {v, example, goal:{title,why}, galaxies:[], courses:[], study:[]}
+let view = "sky", activeCourse = null, filter = "upcoming", target = 100, before = null;
+
+// ---------------- Math ----------------
+function galaxyLevel(xp){
+  let L = 1, x = xp;
+  while (L < 100 && x >= XP_TO_NEXT(L)){ x -= XP_TO_NEXT(L); L++; }
+  return {level:L, into:x, need: L >= 100 ? 0 : XP_TO_NEXT(L)};
+}
+function stageOf(level, tgt){
+  const f = level / (tgt || 50);
+  return f >= 1 ? "nova" : f >= .7 ? "giant" : f >= .45 ? "shine" : f >= .25 ? "proto" : f >= .1 ? "nebula" : "dust";
+}
+function brightness(xp, mastered){ return mastered ? 3 : xp >= 120 ? 2 : xp > 0 ? 1 : 0; }
+function compute(){
+  const gx = {}, where = {};
+  S.galaxies.forEach(g => { gx[g.id] = {xp:0, sources:{}, outXp:{}}; g.outcomes.forEach(o => where[o.id] = g.id); });
+  const add = (gid, xp, src, oid) => { const G = gx[gid]; if (!G || !(xp > 0)) return; G.xp += xp; G.sources[src] = (G.sources[src]||0) + xp; if (oid) G.outXp[oid] = (G.outXp[oid]||0) + xp; };
+  let loose = 0; const cs = {};
+  for (const c of S.courses){
+    const s = stats(c); cs[c.id] = s;
+    const feeds = (c.galaxies||[]).filter(id => gx[id]);
+    for (const q of c.quests){
+      if (q.score == null) continue;
+      const xp = (s.impact[q.id]||0) * 10 * Math.min(q.score / q.max, 1.5);
+      const og = q.outcome && where[q.outcome];
+      if (og) add(og, xp, "c:"+c.id, q.outcome);
+      else if (feeds.length) feeds.forEach(id => add(id, xp/feeds.length, "c:"+c.id));
+      else loose += xp;
+    }
+  }
+  for (const e of S.study){
+    const k = KINDS[e.kind] || KINDS.study, og = e.outcome && where[e.outcome];
+    add(og || e.galaxy, (k.flat||0) + (+e.hours||0)*k.rate, "s:"+e.id, og ? e.outcome : null);
+  }
+  S.galaxies.forEach(g => g.outcomes.forEach(o => { if (o.mastered) add(g.id, MASTER_BONUS, "m", o.id); }));
+  let charXp = 0;
+  for (const g of S.galaxies){ const G = gx[g.id]; G.xp = Math.round(G.xp); Object.assign(G, galaxyLevel(G.xp)); charXp += G.level*(G.level+1)/2 - 1; G.stage = stageOf(G.level, g.target); }
+  for (const g of S.galaxies){ const a = g.after, P = a && gx[a.id]; gx[g.id].locked = !!(P && P.level < a.level); }
+  let level = 1, into = charXp;
+  while (into >= OVERALL_TO_NEXT(level)){ into -= OVERALL_TO_NEXT(level); level++; }
+  const tot = S.galaxies.reduce((n,g) => n + (+g.target||50), 0);
+  const got = S.galaxies.reduce((n,g) => n + Math.min(gx[g.id].level, +g.target||50), 0);
+  const stars = S.galaxies.flatMap(g => g.outcomes.map(o => brightness(gx[g.id].outXp[o.id]||0, o.mastered)));
+  const totalXp = S.galaxies.reduce((n,g) => n + gx[g.id].xp, 0);
+  return {gx, cs, loose:Math.round(loose), level, into:Math.round(into), need:OVERALL_TO_NEXT(level), goalPct: tot ? got/tot*100 : 0,
+    starsLit: stars.filter(b => b > 0).length, starsAll: stars.length, totalXp: Math.round(totalXp),
+    hours: S.study.reduce((n,e) => n + (+e.hours||0), 0), done: S.galaxies.filter(g => gx[g.id].level >= (+g.target||50)).length};
+}
+const gById = id => S.galaxies.find(g => g.id === id);
+const colorOf = g => (COLORS.find(c => c[0] === g.color) || COLORS[0])[1];
+const outcomeById = id => { for (const g of S.galaxies){ const o = g.outcomes.find(o => o.id === id); if (o) return [g,o]; } return [null,null]; };
+
+// ---------------- Keeping the sky (this browser) ----------------
+function blank(){ return {v:1, example:false, goal:{title:"", why:""}, galaxies:[], courses:[], study:[]}; }
+function normalize(d){
+  const s = blank();
+  s.example = !!d.example;
+  s.goal = {title:String(d.goal?.title||""), why:String(d.goal?.why||"")};
+  s.galaxies = (Array.isArray(d.galaxies) ? d.galaxies : []).filter(g => g && g.name).map((g,i) => ({
+    id: typeof g.id === "string" && g.id ? g.id : newId(), name:String(g.name), emoji:String(g.emoji||"✨"),
+    color: COLORS.find(c => c[0] === g.color) ? g.color : COLORS[i % COLORS.length][0],
+    target: Math.min(100, Math.max(1, +g.target||50)),
+    after: g.after && typeof g.after.id === "string" ? {id:g.after.id, level:Math.min(100, Math.max(1, +g.after.level||10))} : null,
+    outcomes: (Array.isArray(g.outcomes) ? g.outcomes : []).filter(o => o && o.text).map(o => ({id: typeof o.id==="string"&&o.id ? o.id : newId(), text:String(o.text), mastered:!!o.mastered, from: o.from ? String(o.from) : null}))}));
+  s.courses = (Array.isArray(d.courses) ? d.courses : []).map(raw => { try { return courseFrom(raw); } catch(e){ return null; } }).filter(Boolean);
+  s.study = (Array.isArray(d.study) ? d.study : []).filter(e => e && e.title).map(e => ({id: typeof e.id==="string"&&e.id ? e.id : newId(), title:String(e.title),
+    date: /^\d{4}-\d{2}-\d{2}$/.test(e.date||"") ? e.date : todayISO(), kind: KINDS[e.kind] ? e.kind : "study", hours: Math.max(0, +e.hours||0),
+    galaxy: String(e.galaxy||""), outcome: e.outcome ? String(e.outcome) : null, note:String(e.note||"")}));
+  return s;
+}
+function courseFrom(raw){
+  const c = fromJSON(raw);
+  c.id = (typeof raw.id === "string" && raw.id) || newId();
+  c.galaxies = Array.isArray(raw.galaxies) ? raw.galaxies.map(String) : [];
+  return c;
+}
+function load(){
+  try { const v = JSON.parse(localStorage.getItem(KEY) || "null"); if (v && Array.isArray(v.galaxies)) return normalize(v); } catch(e){}
+  try { const old = JSON.parse(localStorage.getItem(OLD_KEY) || "null");      // Syllabus Quest courses on the same site come along
+    if (old && Array.isArray(old.courses) && old.courses.length){ const s = blank(); s.courses = normalize({courses:old.courses}).courses; return s; } } catch(e){}
+  return null;
+}
+function persist(){
+  if (S.example) return;
+  try { localStorage.setItem(KEY, JSON.stringify(S)); } catch(e){ toast("This browser won't keep data. Save a file to keep your work."); }
+}
+function snapshot(){ const r = compute(); return {level:r.level, g:Object.fromEntries(S.galaxies.map(g => [g.id, {lv:r.gx[g.id].level, locked:r.gx[g.id].locked}]))}; }
+function commit(){
+  persist();
+  const now = snapshot(), was = before; before = now;
+  render();
+  if (!was) return;
+  const ups = [];
+  for (const g of S.galaxies){ const a = was.g[g.id], b = now.g[g.id]; if (!a) continue;
+    if (b.lv > a.lv) ups.push(`${g.emoji} ${g.name} increased to ${b.lv}`);
+    if (a.locked && !b.locked) ups.push(`🔓 ${g.name} is open`); }
+  if (now.level > was.level){ swarm(); banner(`Level ${now.level}`, ups.join(" · ") || "Your sky is growing"); }
+  else if (ups.length) banner(ups[0], ups.slice(1).join(" · "));
+}
+function cur(){ return S.courses.find(c => c.id === activeCourse) || S.courses[0]; }
+// The example is a playground kept in memory only. Adding a syllabus or opening classes from a file
+// first starts your own sky.
+function ensureOwn(then){
+  if (!S.example) return then();
+  S = blank(); before = snapshot(); persist(); activeCourse = null; render();
+  goalSheet(then);
+}
+
+// ---------------- Example sky (until you start your own) ----------------
+function exampleSky(){
+  const y = new Date().getFullYear();
+  const O = (text, mastered=false) => ({id:newId(), text, mastered, from:"example"});
+  const cam = {id:"g-cam", name:"Camera", emoji:"🎥", color:"Teal", target:60, after:null,
+    outcomes:[O("Build and balance a camera package"), O("Set exposure with the exposure triangle", true), O("Pull focus on a moving subject")]};
+  const light = {id:"g-light", name:"Lighting", emoji:"💡", color:"Blue", target:60, after:null,
+    outcomes:[O("Light a subject with three-point lighting"), O("Shape light with flags and diffusion"), O("Balance color temperatures")]};
+  const comp = {id:"g-comp", name:"Composition", emoji:"🖼️", color:"Pink", target:50, after:{id:"g-cam", level:8},
+    outcomes:[O("Frame shots with lines, thirds and depth"), O("Plan coverage for a scene")]};
+  const color = {id:"g-color", name:"Color", emoji:"🎨", color:"Violet", target:40, after:{id:"g-light", level:15},
+    outcomes:[O("Read a waveform and a vectorscope"), O("Build a look with a LUT")]};
+  const set = {id:"g-set", name:"Set Life", emoji:"🎬", color:"Orange", target:40, after:null,
+    outcomes:[O("Follow set etiquette and the call sheet"), O("Work safely around grip and electric")]};
+  const q = (title, cat, md, max, score=null, done=false, outcome=null) => ({id:newId(), title, cat, due:`${y}-${md}`, max, score, done: done || score!=null, extra:false, outcome});
+  const course = {id:"example-course", name:"Intro to Cinematography", code:"FILM 101", instructor:"Example instructor", term:"Fall",
+    galaxies:["g-cam","g-light"],
+    categories:[{name:"Shooting assignments",weight:40},{name:"Quizzes",weight:15},{name:"Participation",weight:10},{name:"Midterm",weight:15},{name:"Final project",weight:20}],
+    quests:[
+      q("Exposure triangle exercise","Shooting assignments","09-08",50,48,false,cam.outcomes[1].id),
+      q("Quiz 1: Camera parts","Quizzes","09-10",20,20,false,cam.outcomes[0].id),
+      q("Lighting a single subject","Shooting assignments","09-22",50,50,false,light.outcomes[0].id),
+      q("Quiz 2: Lenses","Quizzes","09-24",20,17),
+      q("Participation, first half","Participation","10-15",50,50),
+      q("Midterm exam","Midterm","10-20",100,91),
+      q("Three-point lighting scene","Shooting assignments","10-27",50,null,true,light.outcomes[0].id),
+      q("Quiz 3: Composition","Quizzes","11-05",20),
+      q("Camera movement study","Shooting assignments","11-12",50,null,false,cam.outcomes[2].id),
+      q("Quiz 4: Color temperature","Quizzes","11-19",20,null,false,light.outcomes[2].id),
+      q("Night exterior scene","Shooting assignments","12-01",50),
+      q("Participation, second half","Participation","12-10",50),
+      q("Final project: 3-minute short","Final project","12-14",100),
+    ]};
+  const study = [
+    {id:newId(), title:"Lighting tutorials: soft vs. hard light", date:`${y}-10-02`, kind:"study", hours:3, galaxy:"g-light", outcome:light.outcomes[1].id, note:""},
+    {id:newId(), title:"Grip & electric safety workshop", date:`${y}-10-18`, kind:"workshop", hours:4, galaxy:"g-set", outcome:set.outcomes[1].id, note:""},
+    {id:newId(), title:"Shot breakdowns of favorite films", date:`${y}-11-01`, kind:"study", hours:2, galaxy:"g-comp", outcome:null, note:""},
+  ];
+  return {v:1, example:true, goal:{title:"Cinematographer", why:"Example goal: start your own sky to set yours."}, galaxies:[cam, light, comp, color, set], courses:[course], study};
+}
+
+// ---------------- Drawing: the top tabs ----------------
+function render(){
+  const tabs = [["sky","🌌 Sky"],["classes","📚 Classes"],["study","📖 Study log"],["file","💾 Save"]];
+  $("#views").innerHTML = tabs.map(([k,n]) => `<button class="tab" data-view="${k}" aria-pressed="${k===view}">${n}</button>`).join("");
+  $("#note").innerHTML = S.example ? `<div class="note"><span>👋 This is an example sky: tap around and try it. Nothing is kept until you start your own.</span><button class="fill" data-act="own">Start my sky</button></div>` : "";
+  const r = compute();
+  $("#game").innerHTML = view === "classes" ? classesView(r) : view === "study" ? studyView(r) : skyView(r);
+  const sky = $(".sky"); if (sky) sky.scrollLeft = (sky.scrollWidth - sky.clientWidth) / 2;     // phones: start centered on the goal
+}
+
+// ---------------- The sky ----------------
+function skyView(r){
+  if (!S.galaxies.length) return `
+    ${goalCard(r)}
+    <div class="empty"><h3>🌌 Your sky is empty</h3>
+      <p style="margin:0">Add a galaxy for each skill your goal needs. For a cinematographer that could be Camera, Lighting, Composition, Color and Set Life. Then add your classes and log your study to light them up.</p>
+      <button class="teal" data-act="new-galaxy">＋ Add a galaxy</button></div>`;
+  return `
+    ${goalCard(r)}
+    <section class="box">
+      <div class="box-head"><h3><span class="e">🌌</span>Your sky</h3><span class="sub">Tap a galaxy. A dashed line with 🔓 means: reach that level here to open the galaxy above.</span></div>
+      <div class="sky">${skySVG(r)}</div>
+      ${r.loose ? `<p class="warn">${r.loose} XP from your classes isn't lighting anything yet. Open <a href="#" data-view="classes">Classes</a> and connect each class to its galaxies.</p>` : ""}
+    </section>
+    <section class="box">
+      <div class="box-head"><h3><span class="e">🪐</span>Galaxies</h3>
+        <div class="bar-row"><button class="tab" data-act="new-galaxy">＋ Galaxy</button><button class="tab" data-act="add-study">＋ Log study</button></div></div>
+      <div class="gal-list">${S.galaxies.map(g => galCard(g, r)).join("")}</div>
+    </section>
+    <section class="box">
+      <div class="box-head"><h3><span class="e">🧭</span>How it plays</h3></div>
+      <ul class="plan" style="list-style:none;padding:0">
+        <li>📚 A class at 100% earns <b>1,000 XP</b>, shared by the galaxies it feeds. A graded quest tagged to a learning outcome sends its XP to that star.</li>
+        <li>📖 Logged study earns XP by the hour: self-study 20, workshops 30, a certificate 250 more.</li>
+        <li>⭐ Each learning outcome is a star. It glows as XP reaches it; tap <b>I've got this</b> when you've mastered it for ${MASTER_BONUS} XP more.</li>
+        <li>⬆️ Each time a galaxy levels up, you earn XP equal to its new level, and that raises your level.</li>
+        <li>🔓 Some galaxies open only once another reaches a level. Learning in one area unlocks the next.</li>
+      </ul>
+    </section>`;
+}
+function goalCard(r){
+  const title = S.goal.title || "Set your goal";
+  return `<section class="goalcard">
+    <div class="card"><div class="stars"></div>
+      <div class="lab">🎯 Goal</div>
+      <h2>${esc(title)}</h2>
+      ${S.goal.why ? `<p class="why">${esc(S.goal.why)}</p>` : ""}
+      <div class="lab num">${r.goalPct.toFixed(0)}% of the way · ${r.done} of ${S.galaxies.length} galaxies at their target</div>
+      <div class="meter" role="img" aria-label="${r.goalPct.toFixed(0)} percent of the way to your goal"><i style="width:${Math.min(100,r.goalPct)}%"></i></div>
+      <div><button class="plain" data-act="goal" style="background:transparent;color:#fff;border-color:#fff">Edit goal</button></div>
+    </div>
+    <div class="tiles">
+      <div class="tile stage"><span class="lv">YOUR LEVEL</span><div class="lvl"><span class="n num">${r.level}</span><span class="k num">${r.into} / ${r.need} to ${r.level+1}</span></div>
+        <div class="meter ink"><i style="width:${r.into/r.need*100}%"></i></div></div>
+      <div class="tile"><span class="emo">⭐</span><span class="v num">${r.starsLit}/${r.starsAll}</span><span class="k">Stars lit</span></div>
+      <div class="tile"><span class="emo">✨</span><span class="v num">${r.totalXp.toLocaleString()}</span><span class="k">XP earned</span></div>
+      <div class="tile"><span class="emo">⏱️</span><span class="v num">${fmtN(r.hours)}</span><span class="k">Hours studied</span></div>
+    </div>
+  </section>`;
+}
+function galCard(g, r){
+  const G = r.gx[g.id], a = g.after && gById(g.after.id);
+  const sub = G.locked ? `🔒 Opens at ${esc(a.name)} ${g.after.level} · ${G.xp} XP waiting` : `${STAGE_NAME[G.stage]} · ${g.outcomes.length} star${g.outcomes.length===1?"":"s"}`;
+  return `<button class="gal ${G.locked?"locked":""}" data-g="${esc(g.id)}" style="--gc:${colorOf(g)}">
+    <span class="pic">${sprite(G.stage)}</span>
+    <span class="nm">${esc(g.emoji)} ${esc(g.name)}</span>
+    <span class="sm num">Level ${G.level} of ${g.target}</span>
+    <span class="meter ink" style="height:10px"><i style="width:${Math.min(100, G.level/g.target*100)}%;background:${colorOf(g)}"></i></span>
+    <span class="sm" style="grid-column:1/-1">${sub}</span></button>`;
+}
+// Constellation map: galaxies with nothing before them sit at the bottom; each galaxy they open sits
+// a row higher; the goal shines at the top.
+function skySVG(r){
+  const byId = Object.fromEntries(S.galaxies.map(g => [g.id, g])), depth = {};
+  const d = (g, seen) => { if (depth[g.id] != null) return depth[g.id]; if (seen.has(g.id)) return 0; seen.add(g.id);
+    const p = g.after && byId[g.after.id]; return depth[g.id] = p ? d(p, seen) + 1 : 0; };
+  S.galaxies.forEach(g => d(g, new Set()));
+  const rows = []; S.galaxies.forEach(g => (rows[depth[g.id]] ??= []).push(g));
+  const W = 1000, rowH = 210, H = 230 + rows.length*rowH, pos = {};
+  rows.forEach((row, ri) => row.forEach((g, i) => { pos[g.id] = [W*(i+1)/(row.length+1) + (ri%2 ? 30 : -30)*(row.length>1?1:0), H - 120 - ri*rowH]; }));
+  const goalAt = [W/2, 92];
+  const opens = new Set(S.galaxies.filter(g => g.after).map(g => g.after.id));
+  const lines = S.galaxies.map(g => {
+    const [x,y] = pos[g.id];
+    if (g.after && pos[g.after.id]){ const [px,py] = pos[g.after.id], mx = (x+px)/2, my = (y+py)/2;
+      const y1 = py - 58, y2 = y + 116, lx = px + (x-px)*.3, ly = y1 + (y2-y1)*.3;
+      return `<line x1="${px}" y1="${y1}" x2="${x}" y2="${y2}" stroke="#9eddd8" stroke-width="2" stroke-dasharray="7 6" opacity=".7"/>
+        <rect x="${lx-28}" y="${ly-13}" width="56" height="20" fill="#0b2725" stroke="#9eddd8" stroke-width="1"/>
+        <text x="${lx}" y="${ly+2}" text-anchor="middle" font-size="13" font-weight="700" fill="#9eddd8">🔓 ${g.after.level}</text>`; }
+    return "";
+  }).join("") + S.galaxies.filter(g => !opens.has(g.id)).map(g => { const [x,y] = pos[g.id];
+    return `<line x1="${x}" y1="${y-40}" x2="${goalAt[0]}" y2="${goalAt[1]+30}" stroke="#ffffff" stroke-width="1.2" opacity=".18"/>`; }).join("");
+  const gal = S.galaxies.map(g => galaxySVG(g, r.gx[g.id], pos[g.id])).join("");
+  const lit = r.goalPct >= 99.95;
+  return `<svg viewBox="0 0 ${W} ${H}" font-family="'Courier Prime','Courier New',monospace" role="img" aria-label="Your sky: ${S.galaxies.length} galaxies on the way to ${esc(S.goal.title||"your goal")}">
+    <defs><radialGradient id="glow"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset=".45" stop-color="#9eddd8" stop-opacity=".18"/><stop offset="1" stop-color="#9eddd8" stop-opacity="0"/></radialGradient></defs>
+    ${bgStars(W, H)}
+    ${lines}
+    <g transform="translate(${goalAt[0]-30} ${goalAt[1]-40}) scale(2.5)" opacity="${lit ? 1 : .35 + r.goalPct/160}">${spriteRects("nova")}</g>
+    <text x="${goalAt[0]}" y="${goalAt[1]+44}" text-anchor="middle" fill="#fff" font-family="'Bebas Neue','Arial Narrow',sans-serif" font-size="34" letter-spacing="2">${esc((S.goal.title||"Your goal").toUpperCase())}</text>
+    <text x="${goalAt[0]}" y="${goalAt[1]+64}" text-anchor="middle" fill="#9eddd8" font-size="14">${r.goalPct.toFixed(0)}% LIT</text>
+    ${gal}
+  </svg>`;
+}
+function bgStars(W, H){
+  let seed = 7, out = ""; const rnd = () => (seed = (seed*9301 + 49297) % 233280) / 233280;
+  for (let i = 0; i < 90; i++){ const s = rnd() < .15 ? 3 : 2; out += `<rect x="${(rnd()*W).toFixed(0)}" y="${(rnd()*H).toFixed(0)}" width="${s}" height="${s}" fill="${rnd()<.3?"#9eddd8":"#fff"}" opacity="${(.25+rnd()*.5).toFixed(2)}"/>`; }
+  return out;
+}
+function galaxySVG(g, G, [x, y]){
+  const col = colorOf(g), frac = Math.min(1, G.level / g.target);
+  // Spiral arms: dust that lights up as the galaxy nears its target
+  let arms = ""; const n = 26;
+  for (let i = 0; i < n; i++){ for (const arm of [0, Math.PI]){
+    const t = i / n, a = arm + t*4.2, rr = 18 + t*70;
+    const on = t <= frac;
+    arms += `<rect x="${(x + Math.cos(a)*rr*1.25 - 1.5).toFixed(1)}" y="${(y + Math.sin(a)*rr*.62 - 1.5).toFixed(1)}" width="3" height="3" fill="${on ? col : "#2b4a47"}" opacity="${on ? (.55 + .45*(1-t)).toFixed(2) : .8}"/>`; } }
+  // Learning outcomes: the named stars, placed along the arms
+  const stars = g.outcomes.map((o, i) => {
+    const b = brightness(G.outXp[o.id]||0, o.mastered), t = (i + 1) / (g.outcomes.length + 1), a = (i%2 ? Math.PI : 0) + t*4.2, rr = 18 + t*70;
+    const sx = x + Math.cos(a)*rr*1.25, sy = y + Math.sin(a)*rr*.62, sz = [6,7,9,11][b];
+    const fill = ["#3c605c", col, "#e9fbf9", "#ffffff"][b];
+    return `${b===3 ? `<circle cx="${sx.toFixed(1)}" cy="${sy.toFixed(1)}" r="13" fill="url(#glow)"/>` : ""}
+      <rect x="${(sx-sz/2).toFixed(1)}" y="${(sy-sz/2).toFixed(1)}" width="${sz}" height="${sz}" fill="${fill}" stroke="#0b2725" stroke-width="1"><title>${esc(o.text)}</title></rect>
+      ${b>=2 ? `<rect x="${(sx-.75).toFixed(1)}" y="${(sy-sz).toFixed(1)}" width="1.5" height="${sz*2}" fill="#fff" opacity=".8"/><rect x="${(sx-sz).toFixed(1)}" y="${(sy-.75).toFixed(1)}" width="${sz*2}" height="1.5" fill="#fff" opacity=".8"/>` : ""}`;
+  }).join("");
+  return `<g data-g="${esc(g.id)}" role="button" tabindex="0" aria-label="${esc(g.name)}, level ${G.level} of ${g.target}${G.locked?", locked":""}" opacity="${G.locked ? .38 : 1}">
+    <ellipse class="ring" cx="${x}" cy="${y}" rx="118" ry="64" fill="${col}" fill-opacity=".07" stroke="${col}" stroke-opacity=".35" stroke-width="1.5"/>
+    <circle cx="${x}" cy="${y}" r="${30 + frac*22}" fill="url(#glow)"/>
+    ${arms}${stars}
+    <g transform="translate(${x-33} ${y-33}) scale(2.75)">${spriteRects(G.stage)}</g>
+    <text x="${x}" y="${y+86}" text-anchor="middle" fill="#fff" font-family="'Bebas Neue','Arial Narrow',sans-serif" font-size="27" letter-spacing="1">${G.locked?"🔒 ":""}${esc(g.name.toUpperCase())}</text>
+    <text x="${x}" y="${y+106}" text-anchor="middle" fill="${col}" font-size="15" font-weight="700">LV ${G.level} / ${g.target}</text>
+  </g>`;
+}
+
+// ---------------- Galaxy: details ----------------
+function galaxySheet(g){
+  const r = compute(), G = r.gx[g.id], a = g.after && gById(g.after.id);
+  const srcs = Object.entries(G.sources).sort((x,y) => y[1]-x[1]).map(([k,xp]) => {
+    const [t, id] = k.split(":");
+    const label = t === "c" ? "📚 " + esc((S.courses.find(c => c.id === id)||{}).name || "A class")
+      : t === "s" ? (e => e ? `${KINDS[e.kind].e} ${esc(e.title)}` : "📖 Study")(S.study.find(e => e.id === id)) : "⭐ Stars you've mastered";
+    return `<li><span>${label}</span><b class="num">${Math.round(xp)} XP</b></li>`; }).join("");
+  const classes = S.courses.filter(c => (c.galaxies||[]).includes(g.id));
+  openSheet(`
+    <p class="kick" style="color:${colorOf(g)}">Galaxy</p>
+    <div style="display:flex;gap:1rem;align-items:center">
+      <span class="tile" style="padding:0;box-shadow:none;border:0"><span class="pic" style="width:84px;height:84px;margin:0">${sprite(G.stage)}</span></span>
+      <div style="min-width:0"><h3>${esc(g.emoji)} ${esc(g.name)}</h3><div class="sub">${STAGE_NAME[G.stage]} · ${G.xp.toLocaleString()} XP</div></div>
+    </div>
+    ${G.locked ? `<p class="note" style="margin:0">🔒 Opens when ${esc(a.name)} reaches level ${g.after.level}. ${G.xp} XP is waiting here for you.</p>` : ""}
+    <div><div class="lvl"><span class="n num" style="font-size:3rem">Lv ${G.level}</span><span class="sub num">${G.need ? `${Math.round(G.into)} / ${G.need} XP to level ${G.level+1}` : "Level 100"} · target ${g.target}</span></div>
+      <div class="meter ink"><i style="width:${G.need ? G.into/G.need*100 : 100}%;background:${colorOf(g)}"></i></div></div>
+    ${a && !G.locked ? `<p class="sub" style="margin:0">Opened by ${esc(a.emoji)} ${esc(a.name)} level ${g.after.level}.</p>` : ""}
+    <div><p class="kick">⭐ Stars: learning outcomes</p>
+      <div class="stars-list">${g.outcomes.length ? g.outcomes.map(o => {
+        const xp = Math.round(G.outXp[o.id]||0), b = brightness(xp, o.mastered), from = o.from && S.courses.find(c => c.id === o.from);
+        return `<div class="star-row"><span class="glyph b${b}" aria-hidden="true">${b===3?"🌟":"⭐"}</span>
+          <span style="min-width:0"><span style="font-weight:700">${esc(o.text)}</span><span class="src" style="display:block">${xp} XP${from ? " · from " + esc(from.code||from.name) : ""}</span></span>
+          <button data-master="${esc(o.id)}" aria-pressed="${o.mastered}">${o.mastered ? "✓ Got it" : "I've got this"}</button></div>`; }).join("")
+        : `<p class="sub">No stars yet. Add the learning outcomes for this skill (Edit), or add a class syllabus that lists them.</p>`}</div></div>
+    ${classes.length ? `<div><p class="kick">📚 Classes feeding it</p><div class="chips" style="margin-top:.4rem">${classes.map(c => `<span class="chip">${esc(c.code||c.name)}</span>`).join("")}</div></div>` : ""}
+    ${srcs ? `<div><p class="kick">✨ Where its XP came from</p><ul class="ups" style="margin-top:.4rem">${srcs}</ul></div>` : ""}
+    <div class="actions"><button class="plain" data-close="1">Close</button><button class="plain" id="gs-edit">Edit</button><button class="teal" id="gs-log">＋ Log study</button></div>`,
+  card => {
+    card.querySelectorAll("[data-master]").forEach(b => b.onclick = () => {
+      const [gg, o] = outcomeById(b.dataset.master); if (!o) return;
+      o.mastered = !o.mastered; commit(); galaxySheet(gg);
+      if (o.mastered) toast(`🌟 Star lit: +${MASTER_BONUS} XP`);
+    });
+    card.querySelector("#gs-edit").onclick = () => galaxyEdit(gById(g.id) || null);
+    card.querySelector("#gs-log").onclick = () => studySheet({id:newId(), title:"", date:todayISO(), kind:"study", hours:1, galaxy: gById(g.id) ? g.id : (S.galaxies[0]?.id||""), outcome:null, note:""}, true);
+  });
+}
+function galaxyEdit(g){
+  const isNew = !g;
+  if (isNew) g = {id:newId(), name:"", emoji:"✨", color:COLORS[S.galaxies.length % COLORS.length][0], target:50, after:null, outcomes:[]};
+  const others = S.galaxies.filter(x => x.id !== g.id);
+  openSheet(`
+    <p class="kick">${isNew ? "New galaxy" : "Galaxy"}</p><h3>${isNew ? "Add a galaxy" : "Edit " + esc(g.name)}</h3>
+    <p class="sub" style="margin:0">A galaxy is one skill your goal needs, like Lighting, Editing or Spanish.</p>
+    <div class="row"><label>Skill name<input id="g-name" value="${esc(g.name)}" placeholder="Lighting"></label><label>Emoji<input id="g-emoji" value="${esc(g.emoji)}" maxlength="8"></label></div>
+    <div class="row"><label>Target level (1 to 100)<input id="g-target" inputmode="numeric" value="${g.target}"></label>
+      <label>Color<select id="g-color">${COLORS.map(([n]) => `<option ${n===g.color?"selected":""}>${n}</option>`).join("")}</select></label></div>
+    <div class="row"><label>Opens after<select id="g-after"><option value="">Open from the start</option>${others.map(o => `<option value="${esc(o.id)}" ${g.after&&g.after.id===o.id?"selected":""}>${esc(o.emoji)} ${esc(o.name)}</option>`).join("")}</select></label>
+      <label>…reaches level<input id="g-alv" inputmode="numeric" value="${g.after ? g.after.level : 10}"></label></div>
+    <label>Stars: the learning outcomes, one per line (“Light a scene with three-point lighting”)
+      <textarea id="g-out" rows="6">${esc(g.outcomes.map(o => o.text).join("\n"))}</textarea></label>
+    <div id="g-err" class="err" role="alert"></div>
+    <div class="actions">${isNew ? "" : `<button class="plain" id="g-del">Delete galaxy</button>`}<button class="plain" data-close="1">Cancel</button><button class="fill" id="g-save">Save</button></div>`,
+  card => {
+    const del = card.querySelector("#g-del");
+    if (del) del.onclick = () => armed(del, "Tap again to delete", () => {
+      const ids = new Set(g.outcomes.map(o => o.id));
+      S.galaxies = S.galaxies.filter(x => x.id !== g.id);
+      S.galaxies.forEach(x => { if (x.after && x.after.id === g.id) x.after = null; });
+      S.courses.forEach(c => { c.galaxies = (c.galaxies||[]).filter(id => id !== g.id); c.quests.forEach(q => { if (ids.has(q.outcome)) q.outcome = null; }); });
+      S.study.forEach(e => { if (e.galaxy === g.id) e.galaxy = ""; if (ids.has(e.outcome)) e.outcome = null; });
+      closeSheet(); commit(); toast("Galaxy deleted");
+    });
+    card.querySelector("#g-save").onclick = () => {
+      const name = $("#g-name").value.trim(), tg = Math.round(+$("#g-target").value), alv = Math.round(+$("#g-alv").value), aid = $("#g-after").value;
+      if (!name) return $("#g-err").textContent = "Give the galaxy a name.";
+      if (!(tg >= 1 && tg <= 100)) return $("#g-err").textContent = "The target level is a number from 1 to 100.";
+      if (aid && !(alv >= 1 && alv <= 100)) return $("#g-err").textContent = "“Reaches level” is a number from 1 to 100.";
+      if (aid && opensChain(aid, g.id)) return $("#g-err").textContent = "That would make a loop: that galaxy already opens after this one.";
+      const lines = $("#g-out").value.split("\n").map(l => l.trim()).filter(Boolean);
+      const keep = g.outcomes.slice();
+      const outs = lines.map(t => { const i = keep.findIndex(o => o.text === t); return i >= 0 ? keep.splice(i,1)[0] : {id:newId(), text:t, mastered:false, from:null}; });
+      const gone = new Set(keep.map(o => o.id));
+      S.courses.forEach(c => c.quests.forEach(q => { if (gone.has(q.outcome)) q.outcome = null; }));
+      S.study.forEach(e => { if (gone.has(e.outcome)) e.outcome = null; });
+      Object.assign(g, {name, emoji: $("#g-emoji").value.trim() || "✨", target: tg, color: $("#g-color").value, after: aid ? {id:aid, level:alv} : null, outcomes: outs});
+      if (isNew) S.galaxies.push(g);
+      closeSheet(); commit(); toast(isNew ? `🌌 ${name} is in your sky` : "Galaxy saved");
+    };
+  });
+}
+function opensChain(fromId, targetId){ let g = gById(fromId), n = 0; while (g && n++ < 200){ if (g.id === targetId) return true; g = g.after && gById(g.after.id); } return false; }
+function goalSheet(then){
+  openSheet(`
+    <p class="kick">🎯 Your goal</p><h3>What are you working toward?</h3>
+    <label>Goal<input id="o-title" value="${esc(S.goal.title)}" placeholder="Cinematographer"></label>
+    <label>Why it matters to you (optional)<textarea id="o-why" rows="3">${esc(S.goal.why)}</textarea></label>
+    <div id="o-err" class="err" role="alert"></div>
+    <div class="actions"><button class="plain" data-close="1">${then ? "Later" : "Cancel"}</button><button class="fill" id="o-save">Save</button></div>`,
+  card => card.querySelector("#o-save").onclick = () => {
+    const t = $("#o-title").value.trim(); if (!t) return $("#o-err").textContent = "Name your goal.";
+    S.goal = {title:t, why:$("#o-why").value.trim()}; closeSheet(); commit();
+    if (then) then(); else toast("🎯 Goal set");
+  });
+}
+
+// ---------------- Classes ----------------
+function classesView(r){
+  const add = `<button class="teal" data-act="import">＋ Add a syllabus</button>`;
+  if (!S.courses.length) return `<div class="empty"><h3>📚 No classes yet</h3>
+    <p style="margin:0">Paste in a class syllabus. Every assignment, quiz and exam becomes a quest, its learning outcomes become stars, and your grades light up the galaxies the class feeds.</p>${add}</div>`;
+  const c = cur(); activeCourse = c.id;
+  const s = r.cs[c.id];
+  return `<div class="bar-row">${S.courses.map(x => `<button class="tab" data-course="${esc(x.id)}" aria-pressed="${x.id===c.id}">${esc(x.code||x.name)}</button>`).join("")}${add}</div>
+    ${feedsBox(c, r)}
+    ${courseView(c, s)}`;
+}
+function feedsBox(c, r){
+  const feeds = (c.galaxies||[]).map(gById).filter(Boolean);
+  const mine = S.galaxies.flatMap(g => g.outcomes.filter(o => o.from === c.id).map(o => [g,o]));
+  const xp = S.galaxies.reduce((n,g) => n + (r.gx[g.id].sources["c:"+c.id]||0), 0);
+  return `<section class="box">
+    <div class="box-head"><h3><span class="e">🌌</span>Lights up</h3><button class="tab" data-act="feeds">Connect galaxies</button></div>
+    ${feeds.length ? `<div class="chips">${feeds.map(g => `<button class="chip" data-g="${esc(g.id)}" style="--gc:${colorOf(g)}">${esc(g.emoji)} ${esc(g.name)} · Lv ${r.gx[g.id].level}</button>`).join("")}</div>
+      <p class="sub" style="margin:0">This class has sent <b class="num">${Math.round(xp)} XP</b> to your sky. At 100% it sends 1,000.</p>`
+      : `<p class="warn" style="margin:0">Not connected yet: this class's grades aren't lighting any galaxy. Tap “Connect galaxies”.</p>`}
+    ${mine.length ? `<div><p class="kick">⭐ Its learning outcomes</p><div class="stars-list">${mine.map(([g,o]) => { const b = brightness(r.gx[g.id].outXp[o.id]||0, o.mastered);
+      return `<div class="star-row"><span class="glyph b${b}" aria-hidden="true">${b===3?"🌟":"⭐"}</span><span style="min-width:0">${esc(o.text)}<span class="src" style="display:block">${esc(g.emoji)} ${esc(g.name)}</span></span><span></span></div>`; }).join("")}</div></div>` : ""}
+  </section>`;
+}
+function courseView(c, s){
+  const today = todayISO();
+  const soon = d => d && d >= today && (new Date(d) - new Date(today))/864e5 <= 7;
+  let list = [...c.quests].sort((a,b) => (a.due||"9").localeCompare(b.due||"9"));
+  if (filter === "upcoming") list = list.filter(q => q.score == null);
+  if (filter === "done") list = list.filter(q => q.done);
+  const open = c.quests.filter(q => q.score == null && !q.done);
+  const biggest = [...open].sort((a,b) => (s.impact[b.id]||0) - (s.impact[a.id]||0)).slice(0,3);
+  const atLight = s.secured >= 99.95, stage = LEVELS[s.level-1], lvName = atLight ? "Supernova!" : stage[0], li = lifeIndex(s.level, atLight);
+  return `
+  <section class="course">
+    <p class="kick">${esc([c.code,c.term].filter(Boolean).join(" · ") || "Course")}</p>
+    <h2>${esc(c.name)}</h2>
+    ${c.instructor ? `<div class="meta">${esc(c.instructor)}</div>` : ""}
+  </section>
+  <section class="board">
+    <div class="card"><div class="stars"></div>
+      <div class="lab">Grade right now</div>
+      <div class="big num">${s.current==null ? "—" : s.current.toFixed(1)}<small>${s.current==null ? "" : "%"}</small></div>
+      <div class="flight" role="img" aria-label="Locked in ${s.secured.toFixed(1)} percent; still possible ${s.max.toFixed(1)} percent">
+        <div class="track"><i class="can" style="width:${Math.min(100,s.max)}%"></i><i class="done" style="width:${Math.min(100,s.secured)}%"></i></div>
+        <div class="fly" style="left:${Math.max(4,Math.min(100,s.secured))}%">${sprite(atLight ? "nova" : stage[1], "twinkle")}</div>
+        <div class="goal">${sprite("nova")}</div>
+      </div>
+      <div class="legend num"><span>━ Locked in ${s.secured.toFixed(1)}%</span><span>┅ Still possible ${s.max.toFixed(1)}%</span><span>💥 = 100%</span></div>
+      <div class="lab">${s.current==null ? "Log your first score to start the clock." : s.max >= 99.95 ? "100% is still on the table." : `${(100-s.max).toFixed(1)} points lost so far. Extra credit can win some back.`}</div>
+    </div>
+    <div class="tiles">
+      <div class="tile stage"><span class="pic">${sprite(atLight ? "nova" : stage[1])}</span><span class="lv">CLASS ${atLight ? "★" : "LV " + s.level}</span><span class="v">${esc(lvName)}</span><span class="k num">${s.xp} / 1,000 XP</span></div>
+      <div class="tile"><span class="emo">📜</span><span class="v num">${s.done}/${s.total}</span><span class="k">Quests turned in</span></div>
+      <div class="tile"><span class="emo">🔥</span><span class="v num">${s.streak}</span><span class="k">Perfect scores in a row</span></div>
+      <div class="tile"><span class="emo">💯</span><span class="v num">${s.perfect}</span><span class="k">Perfect scores</span></div>
+    </div>
+  </section>
+  <section class="box" aria-label="This class's star">
+    <div class="box-head"><h3><span class="e">🌠</span>This class's star</h3><span class="sub">Lock in grade to grow it. 100% goes supernova.</span></div>
+    <div class="life">${LIFE.map(([k,n,t],i) => `<div class="st ${i<li?"past":i===li?"now":""}"><span class="ic">${sprite(k)}</span><span>${n}<small>${t}</small></span></div>`).join("")}</div>
+  </section>
+  ${s.stray ? `<p class="warn">Some quests have a category that isn't in the grade breakdown, so they don't count yet. Tap one to pick its category.</p>` : ""}
+  <section class="box" id="target">
+    <div class="box-head"><h3><span class="e">🎯</span>Get to ${target}%</h3>
+      <div class="bar-row">${[100,93,90,80].map(g => `<button class="tab" data-goal="${g}" aria-pressed="${g===target}">${g}%</button>`).join("")}</div></div>
+    <div class="target"><p class="answer">${targetLine(s)}</p></div>
+    ${weekPlan(c,s)}
+  </section>
+  ${biggest.length ? `<section class="box">
+    <div class="box-head"><h3><span class="e">⚔️</span>Biggest quests left</h3><span class="sub">Open work worth the most of your final grade</span></div>
+    <div class="prizes">${biggest.map(q => `<button class="prize" data-q="${esc(q.id)}"><span class="w num">${(s.impact[q.id]||0).toFixed(1)}%</span><b>${esc(q.title)}</b><span class="sub">${q.due?fmtDate(q.due):"No date"} · ${esc(q.cat||"")}</span></button>`).join("")}</div>
+  </section>` : ""}
+  <section class="box">
+    <div class="box-head"><h3><span class="e">📈</span>Your path</h3><span class="sub">Grade locked in, quest by quest, across the term</span></div>
+    <div class="path">${pathSVG(c,s)}</div>
+  </section>
+  <section class="box" id="quests">
+    <div class="box-head"><h3><span class="e">📜</span>Quest log</h3>
+      <div class="bar-row">${["upcoming","all","done"].map(f => `<button class="tab" data-filter="${f}" aria-pressed="${f===filter}">${f[0].toUpperCase()+f.slice(1)}</button>`).join("")}<button class="tab" data-act="add">+ Quest</button></div></div>
+    <div class="quests">${list.length ? list.map(q => questRow(q,s,soon)).join("") : `<p class="sub">${filter==="upcoming" ? "Every quest is graded. Nice work." : "Nothing here yet."}</p>`}</div>
+  </section>
+  <section class="box">
+    <div class="box-head"><h3><span class="e">🏅</span>Badges</h3><span class="sub">${badges(c,s).filter(b=>b.on).length} of 7 earned</span></div>
+    <div class="badges">${badges(c,s).map(b => `<span class="badge ${b.on?"on":""}"><span class="e">${b.e}</span>${esc(b.name)}</span>`).join("")}</div>
+  </section>
+  <div class="actions"><button class="plain" data-act="course">Edit class &amp; grade breakdown</button></div>`;
+}
+function feedsSheet(c){
+  openSheet(`
+    <p class="kick">${esc(c.code||c.name)}</p><h3>Which galaxies does it light?</h3>
+    <p class="sub" style="margin:0">The class's XP is shared between the galaxies you tick. A quest tagged to a learning outcome sends its XP to that star's galaxy instead.</p>
+    <div class="checks">${S.galaxies.length ? S.galaxies.map(g => `<label class="check"><input type="checkbox" value="${esc(g.id)}" ${(c.galaxies||[]).includes(g.id)?"checked":""}> ${esc(g.emoji)} ${esc(g.name)}</label>`).join("") : `<span class="sub">No galaxies yet. Name one below.</span>`}</div>
+    <label>New galaxy (optional)<input id="f-new" placeholder="Like Lighting"></label>
+    <div class="actions"><button class="plain" data-close="1">Cancel</button><button class="fill" id="f-ok">Save</button></div>`,
+  card => card.querySelector("#f-ok").onclick = () => {
+    const ids = [...card.querySelectorAll(".checks input:checked")].map(i => i.value);
+    const nn = $("#f-new").value.trim();
+    if (nn){ const g = {id:newId(), name:nn, emoji:"✨", color:COLORS[S.galaxies.length % COLORS.length][0], target:50, after:null, outcomes:[]}; S.galaxies.push(g); ids.push(g.id); }
+    c.galaxies = ids; closeSheet(); commit(); toast(ids.length ? "🌌 Connected" : "Saved");
+  });
+}
+
+// ---------------- Adding a syllabus ----------------
+const CLAUDE_PROMPT = `Turn the class syllabus below into JSON for a learning game. Reply with only the JSON, in this shape:
+{"name":"Course title","code":"DEPT 101","instructor":"","term":"","outcomes":["Light a subject with three-point lighting"],"categories":[{"name":"Quizzes","weight":20}],"quests":[{"title":"Quiz 1","category":"Quizzes","due":"YYYY-MM-DD","points":20,"extra":false}]}
+- outcomes: the student learning outcomes (SLOs) or course objectives, each a short "can do" phrase ([] if none).
+- categories: the grading breakdown with percent weights ([] if graded by total points).
+- One quest per graded item; split "10 weekly quizzes" into Quiz 1 to Quiz 10 with their dates.
+- Each quest's category must match a category name exactly. Use null for unknown dates; 100 for unknown points.
+- extra is true only for extra credit. Don't add anything that isn't in the syllabus.
+
+SYLLABUS:
+`;
+// Learning outcomes: the lines under a "Student Learning Outcomes" / "Course Objectives" heading,
+// or lines like "SLO 2: ..." and "Students will be able to ..."
+function readOutcomes(text){
+  const out = [], bullet = /^([-•*▪◦●]|\d{1,2}[.)]|[a-h][.)]|SLO\s*#?\d+\s*[:.)\-–]?)\s*/i;
+  const can = /^(students?|learners?)\s+will\b|^(be able to|demonstrate|identify|apply|analy[sz]e|create|describe|explain|evaluate|operate|use|compare|develop|produce|design|plan|build|write|perform|recogni[sz]e|discuss|interpret|execute|assess|construct)\b/i;
+  const push = t => { t = t.replace(bullet, "").replace(/^(students?|learners?)\s+will\s+(be\s+able\s+to\s+)?/i, "").replace(/^[:\-–—\s]+/, "").replace(/[;.,]\s*$/, "").trim();
+    if (t.length < 8) return; t = t[0].toUpperCase() + t.slice(1); if (t.length > 140) t = t.slice(0,137).replace(/\s\S*$/, "") + "…";
+    if (!out.some(o => o.toLowerCase() === t.toLowerCase())) out.push(t); };
+  let inBlock = false, gap = 0;
+  for (const raw of text.split(/\r?\n/)){
+    const l = raw.replace(/\s+/g, " ").trim();
+    if (!l){ if (inBlock && ++gap >= 2) inBlock = false; continue; }
+    gap = 0;
+    if (l.length < 140 && /(learning\s+outcomes?|\bSLOs?\b|course\s+objectives|learning\s+objectives|upon\s+(successful\s+)?completion)/i.test(l) && !/^SLO\s*#?\d/i.test(l)){
+      inBlock = true; const after = l.split(":").slice(1).join(":").trim(); if (after.length > 12 && can.test(after)) push(after); continue; }
+    if (inBlock){
+      if (bullet.test(l) || can.test(l)) push(l);
+      else if (/^[A-Z][A-Za-z &/]{2,40}:?$/.test(l) || /%\s*\)?$/.test(l) || /\b(week|schedule|grading|policy|attendance)\b/i.test(l) && l.length < 50) inBlock = false;
+    } else if (/^SLO\s*#?\d+/i.test(l) || /^students\s+will\s+be\s+able\s+to\b.{12,}/i.test(l)) push(l);
+  }
+  return out.slice(0, 24);
+}
+function fromJSON(data){
+  if (!data || !Array.isArray(data.quests)) throw new Error("That JSON doesn't have a list of quests.");
+  return {name:String(data.name||"My course"), code:String(data.code||""), instructor:String(data.instructor||""), term:String(data.term||""),
+    categories:(Array.isArray(data.categories)?data.categories:[]).filter(k=>k&&k.name).map(k=>({name:String(k.name),weight:+k.weight||0})),
+    quests:data.quests.filter(q=>q&&q.title).map(q=>({id:q.id&&typeof q.id==="string"?q.id:newId(), title:String(q.title), cat:String(q.category??q.cat??""),
+      due:/^\d{4}-\d{2}-\d{2}$/.test(q.due||"")?q.due:null, max:+(q.points??q.max)>0?+(q.points??q.max):100,
+      score:q.score!=null&&q.score!==""&&!isNaN(+q.score)?+q.score:null, done:!!q.done||(q.score!=null&&q.score!==""), extra:!!q.extra,
+      outcome: typeof q.outcome==="string" && q.outcome ? q.outcome : null})),
+    outcomes:(Array.isArray(data.outcomes)?data.outcomes:[]).map(o=>String(typeof o==="string"?o:o&&o.text||"").trim()).filter(Boolean)};
+}
+function importSheet(){
+  openSheet(`
+    <p class="kick">Add a syllabus</p><h3>Start a class</h3>
+    <p style="margin:0">Copy the text of your syllabus (from the PDF or the class page) and paste it here. Include the learning outcomes, the grading breakdown and the schedule.</p>
+    <textarea id="i-text" rows="9" placeholder="Paste your syllabus here…"></textarea>
+    <div class="row">
+      <label>First day of class (helps with “Week 3” dates)<input id="i-first" type="date"></label>
+      <label>Or open a text file<input id="i-file" type="file" accept=".txt,.md,.csv,.json,text/plain,application/json"></label>
+    </div>
+    <details><summary>Messy syllabus? Let Claude or another AI read it</summary>
+      <p class="sub">Copy this prompt, add your syllabus at the end, and send it to an AI assistant. Paste its whole answer in the box above.</p>
+      <div class="prompt" id="i-prompt"></div>
+      <div class="actions" style="justify-content:flex-start;margin-top:.5rem"><button class="plain" id="i-copy">Copy the prompt</button></div>
+    </details>
+    <div id="i-err" class="err" role="alert"></div>
+    <div class="actions"><button class="plain" id="i-blank">Start with a blank class</button><button class="plain" data-close="1">Cancel</button><button class="fill" id="i-go">Read my syllabus</button></div>`,
+  card => {
+    card.querySelector("#i-prompt").textContent = CLAUDE_PROMPT + "[paste your syllabus here]";
+    card.querySelector("#i-copy").onclick = async (e) => {
+      try { await navigator.clipboard.writeText(CLAUDE_PROMPT); e.target.textContent = "Copied"; }
+      catch(err){ const r = document.createRange(); r.selectNodeContents($("#i-prompt")); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); e.target.textContent = "Selected: copy it"; }
+    };
+    card.querySelector("#i-file").onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { $("#i-text").value = String(r.result).slice(0, 300000); }; r.readAsText(f); };
+    card.querySelector("#i-blank").onclick = () => { const c = {id:newId(), name:"New class", code:"", term:"", instructor:"", categories:[], quests:[], galaxies:[]}; S.courses.push(c); activeCourse = c.id; view = "classes"; commit(); courseSheet(c); };
+    card.querySelector("#i-go").onclick = () => {
+      const text = $("#i-text").value.trim();
+      if (!text) return $("#i-err").textContent = "Paste your syllabus first.";
+      let course;
+      const jsonish = text.match(/\{[\s\S]*\}/);
+      if (/^\s*(```|\{)/.test(text) && jsonish){
+        try { course = fromJSON(JSON.parse(jsonish[0])); course.quests.forEach(q => q.keep = true); }
+        catch(err){ return $("#i-err").textContent = "That looks like JSON but couldn't be read. Paste the AI's whole answer, or paste the syllabus text instead."; }
+      } else { course = readSyllabus(text, $("#i-first").value || null); course.outcomes = readOutcomes(text); }
+      if (!course.quests.length && !course.outcomes.length) return $("#i-err").textContent = "No graded work or learning outcomes were found. Make sure the schedule with due dates is included, or try the AI option below.";
+      reviewSheet(course);
+    };
+  });
+}
+function reviewSheet(course){
+  const catOpts = k => `<option value=""${k?"":" selected"}>—</option>` + course.categories.map(x => `<option ${x.name===k?"selected":""}>${esc(x.name)}</option>`).join("");
+  openSheet(`
+    <p class="kick">Check it over</p><h3>${course.quests.length} quests, ${course.outcomes.length} outcomes</h3>
+    <p style="margin:0">Untick anything that isn't graded work, and fix titles, dates or points. You can change all of this later too.</p>
+    <div class="row"><label>Class name<input id="r-name" value="${esc(course.name)}"></label><label>Course code<input id="r-code" value="${esc(course.code)}"></label></div>
+    <p class="kick" style="margin-top:.4rem">🌌 Galaxies this class lights up</p>
+    <div class="checks">${S.galaxies.map(g => `<label class="check"><input type="checkbox" class="r-g" value="${esc(g.id)}"> ${esc(g.emoji)} ${esc(g.name)}</label>`).join("") || `<span class="sub">No galaxies yet. Name one below.</span>`}
+      <label>New galaxy (optional)<input id="r-newg" placeholder="Like Lighting"></label></div>
+    <label>⭐ Learning outcomes: each becomes a star (one per line)
+      <textarea id="r-out" rows="${Math.max(3, Math.min(8, course.outcomes.length+1))}" placeholder="Light a subject with three-point lighting">${esc(course.outcomes.join("\n"))}</textarea></label>
+    <label>Put the stars in<select id="r-into"><option value="">The first galaxy ticked above</option>${S.galaxies.map(g => `<option value="${esc(g.id)}">${esc(g.emoji)} ${esc(g.name)}</option>`).join("")}</select></label>
+    <label>Grade breakdown (“Quizzes, 20”, one per line; empty = graded by total points)
+      <textarea id="r-cats" rows="${Math.max(3,course.categories.length+1)}">${esc(course.categories.map(k=>`${k.name}, ${k.weight}`).join("\n"))}</textarea></label>
+    ${course.quests.length ? `<div class="preview"><table>
+      <thead><tr><th>Keep</th><th>Quest</th><th>Category</th><th>Due</th><th>Points</th></tr></thead>
+      <tbody>${course.quests.map((q,i) => `<tr>
+        <td class="c"><input type="checkbox" id="k${i}" ${q.keep!==false?"checked":""} aria-label="Keep ${esc(q.title)}"></td>
+        <td><input id="t${i}" value="${esc(q.title)}" aria-label="Title"></td>
+        <td>${course.categories.length?`<select id="c${i}" aria-label="Category">${catOpts(q.cat)}</select>`:`<input id="c${i}" value="${esc(q.cat)}" aria-label="Category">`}</td>
+        <td><input id="d${i}" type="date" value="${esc(q.due||"")}" aria-label="Due date"></td>
+        <td><input id="p${i}" inputmode="decimal" value="${q.max}" aria-label="Points" style="width:5rem"></td></tr>`).join("")}</tbody></table></div>` : ""}
+    <div id="r-err" class="err" role="alert"></div>
+    <div class="actions"><button class="plain" id="r-back">Back</button><button class="fill" id="r-go">Start the class</button></div>`,
+  card => {
+    card.querySelector("#r-back").onclick = importSheet;
+    card.querySelector("#r-go").onclick = () => {
+      const cats = [];
+      for (const line of $("#r-cats").value.split("\n").map(l => l.trim()).filter(Boolean)){
+        const m = line.match(/^(.*?)[,:\t]\s*([\d.]+)\s*%?$/);
+        if (!m) return $("#r-err").textContent = `Couldn't read “${line}” in the grade breakdown. Write it like “Quizzes, 20”.`;
+        cats.push({name:m[1].trim(), weight:+m[2]});
+      }
+      const quests = [];
+      course.quests.forEach((q,i) => {
+        if (!$("#k"+i).checked) return;
+        const title = $("#t"+i).value.trim(); if (!title) return;
+        const max = parseFloat($("#p"+i).value);
+        const nq = {...q, title, cat:$("#c"+i).value, due:$("#d"+i).value||null, max:max>0?max:100, outcome:null}; delete nq.keep;
+        quests.push(nq);
+      });
+      const outs = $("#r-out").value.split("\n").map(l => l.trim()).filter(Boolean);
+      if (!quests.length && !outs.length) return $("#r-err").textContent = "Keep at least one quest or learning outcome.";
+      const ids = [...card.querySelectorAll(".r-g:checked")].map(i => i.value);
+      const nn = $("#r-newg").value.trim();
+      if (nn){ const g = {id:newId(), name:nn, emoji:"✨", color:COLORS[S.galaxies.length % COLORS.length][0], target:50, after:null, outcomes:[]}; S.galaxies.push(g); ids.push(g.id); }
+      const into = $("#r-into").value || ids[0];
+      if (outs.length && !into) return $("#r-err").textContent = "Tick a galaxy (or name a new one) for the stars to go in.";
+      const c = {id:newId(), name:$("#r-name").value.trim()||"My class", code:$("#r-code").value.trim(), term:course.term||"", instructor:course.instructor||"", categories:cats, quests, galaxies:ids};
+      const g = gById(into); if (g) outs.forEach(t => { if (!g.outcomes.some(o => o.text === t)) g.outcomes.push({id:newId(), text:t, mastered:false, from:c.id}); });
+      S.courses.push(c); activeCourse = c.id; view = "classes";
+      closeSheet(); commit(); swarm(); toast(`✨ ${quests.length} quests and ${outs.length} stars ready`);
+    };
+  });
+}
+
+// ---------------- Study log ----------------
+function studyView(r){
+  const add = `<button class="teal" data-act="add-study">＋ Log study</button>`;
+  if (!S.galaxies.length) return `<div class="empty"><h3>📖 Study log</h3><p style="margin:0">Log tutorials, workshops and certificates here. First add a galaxy in your sky for the skill you're studying.</p><button class="teal" data-act="new-galaxy">＋ Add a galaxy</button></div>`;
+  const month = todayISO().slice(0,7);
+  const list = [...S.study].sort((a,b) => b.date.localeCompare(a.date));
+  const xpOf = e => { const k = KINDS[e.kind] || KINDS.study; return Math.round((k.flat||0) + (+e.hours||0)*k.rate); };
+  return `<section class="box">
+    <div class="box-head"><h3><span class="e">📖</span>Study log</h3>${add}</div>
+    <div class="tiles" style="grid-template-columns:repeat(3,minmax(0,1fr))">
+      <div class="tile"><span class="emo">📅</span><span class="v num">${fmtN(S.study.filter(e => e.date.startsWith(month)).reduce((n,e) => n + (+e.hours||0), 0))}</span><span class="k">Hours this month</span></div>
+      <div class="tile"><span class="emo">⏱️</span><span class="v num">${fmtN(r.hours)}</span><span class="k">Hours in all</span></div>
+      <div class="tile"><span class="emo">✨</span><span class="v num">${S.study.reduce((n,e) => n + xpOf(e), 0).toLocaleString()}</span><span class="k">XP from study</span></div>
+    </div>
+    <div class="quests log">${list.length ? list.map(e => { const g = gById(e.galaxy), [, o] = outcomeById(e.outcome);
+      return `<button class="q" data-study="${esc(e.id)}"><span class="k" aria-hidden="true">${(KINDS[e.kind]||KINDS.study).e}</span>
+        <span style="min-width:0"><span class="t">${esc(e.title)}</span><span class="d"><span>${fmtDate(e.date)}</span><span>${g ? esc(g.emoji)+" "+esc(g.name) : "⚠️ No galaxy"}</span>${o ? `<span>⭐ ${esc(o.text)}</span>` : ""}</span></span>
+        <span class="r"><b class="num">+${xpOf(e)} XP</b>${fmtN(e.hours)} hr</span></button>`; }).join("")
+      : `<p class="sub">Nothing logged yet. Every hour of study counts.</p>`}</div>
+  </section>`;
+}
+function studySheet(e, isNew){
+  const starOpts = gid => { const g = gById(gid); return `<option value="">The whole galaxy</option>` + (g ? g.outcomes.map(o => `<option value="${esc(o.id)}" ${o.id===e.outcome?"selected":""}>${esc(o.text)}</option>`).join("") : ""); };
+  openSheet(`
+    <p class="kick">${isNew ? "Log study" : "Study"}</p><h3>${isNew ? "What did you learn?" : esc(e.title)}</h3>
+    <label>What you did<input id="s-title" value="${esc(e.title)}" placeholder="Lighting tutorial: soft vs. hard light"></label>
+    <div class="row"><label>Kind<select id="s-kind">${Object.entries(KINDS).map(([k,v]) => `<option value="${k}" ${k===e.kind?"selected":""}>${v.e} ${v.name}</option>`).join("")}</select></label>
+      <label>Date<input id="s-date" type="date" value="${esc(e.date)}"></label></div>
+    <p class="sub" id="s-hint" style="margin:0"></p>
+    <div class="row"><label>Hours<input id="s-hours" inputmode="decimal" value="${e.hours}"></label>
+      <label>Galaxy<select id="s-gal">${S.galaxies.map(g => `<option value="${esc(g.id)}" ${g.id===e.galaxy?"selected":""}>${esc(g.emoji)} ${esc(g.name)}</option>`).join("")}</select></label></div>
+    <label>Star (learning outcome)<select id="s-star">${starOpts(e.galaxy || S.galaxies[0]?.id)}</select></label>
+    <label>Notes (optional)<textarea id="s-note" rows="2">${esc(e.note)}</textarea></label>
+    <div id="s-err" class="err" role="alert"></div>
+    <div class="actions">${isNew ? "" : `<button class="plain" id="s-del">Delete</button>`}<button class="plain" data-close="1">Cancel</button><button class="fill" id="s-save">Save</button></div>`,
+  card => {
+    const hint = () => $("#s-hint").textContent = KINDS[$("#s-kind").value].hint;
+    hint(); card.querySelector("#s-kind").onchange = hint;
+    card.querySelector("#s-gal").onchange = ev => { $("#s-star").innerHTML = starOpts(ev.target.value); };
+    const del = card.querySelector("#s-del");
+    if (del) del.onclick = () => armed(del, "Tap again to delete", () => { S.study = S.study.filter(x => x.id !== e.id); closeSheet(); commit(); toast("Deleted"); });
+    card.querySelector("#s-save").onclick = () => {
+      const title = $("#s-title").value.trim(), hours = parseFloat($("#s-hours").value || "0");
+      if (!title) return $("#s-err").textContent = "Say what you studied.";
+      if (!(hours >= 0) || hours > 200) return $("#s-err").textContent = "Hours needs to be a number (like 1.5).";
+      if (!$("#s-gal").value) return $("#s-err").textContent = "Pick a galaxy.";
+      Object.assign(e, {title, hours, kind:$("#s-kind").value, date:$("#s-date").value || todayISO(), galaxy:$("#s-gal").value, outcome:$("#s-star").value || null, note:$("#s-note").value.trim()});
+      if (isNew) S.study.push(e);
+      closeSheet(); commit(); if (isNew) toast("📖 Logged");
+    };
+  });
+}
+
+// ---------------- Save / open ----------------
+function fileSheet(){
+  const has = !S.example && (S.galaxies.length || S.courses.length || S.study.length);
+  const text = has ? JSON.stringify({goalGalaxy:1, ...S}) : "";
+  openSheet(`
+    <p class="kick">Your file</p><h3>Save or open</h3>
+    <p style="margin:0">Your sky stays in this browser. To keep a backup or move to another device, download your file (or copy it into a note or an email to yourself). Open it here to bring it back. Syllabus Quest files open too.</p>
+    <label>Sky file<textarea id="x-text" rows="7" placeholder="Paste a saved file here to open it…">${esc(text)}</textarea></label>
+    <label>Or open a .json file<input id="x-file" type="file" accept=".json,application/json,text/plain"></label>
+    <div id="x-err" class="err" role="alert"></div>
+    <div class="actions"><button class="plain" data-close="1">Close</button><button class="plain" id="x-copy" ${has?"":"disabled"}>Copy</button><button class="plain" id="x-dl" ${has?"":"disabled"}>Download</button><button class="fill" id="x-open">Open this file</button></div>`,
+  card => {
+    card.querySelector("#x-copy").onclick = async (ev) => { const t = $("#x-text");
+      try { await navigator.clipboard.writeText(t.value); ev.target.textContent = "Copied"; } catch(err){ t.focus(); t.select(); ev.target.textContent = "Selected: copy it"; } };
+    card.querySelector("#x-dl").onclick = () => {
+      const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([text], {type:"application/json"}));
+      a.download = `goal-galaxy-${todayISO()}.json`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); };
+    card.querySelector("#x-file").onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { $("#x-text").value = String(r.result); }; r.readAsText(f); };
+    const open = card.querySelector("#x-open");
+    open.onclick = () => {
+      let data; try { data = JSON.parse($("#x-text").value); } catch(err){ return $("#x-err").textContent = "That isn't a Goal Galaxy file. Paste the whole file, starting with {"; }
+      if (data && data.goalGalaxy){
+        const go = () => { S = normalize({...data, example:false}); before = snapshot(); activeCourse = null; persist(); closeSheet(); render(); toast("🌌 Sky opened"); };
+        return has ? armed(open, "Tap again: this replaces your sky", go) : go();
+      }
+      const list = Array.isArray(data && data.courses) ? data.courses : [data];       // Syllabus Quest file, or one class
+      const add = list.map(raw => { try { return courseFrom(raw); } catch(e){ return null; } }).filter(Boolean);
+      if (!add.length) return $("#x-err").textContent = "No sky or classes were found in that file.";
+      ensureOwn(() => {
+        for (const c of add){ S.courses = S.courses.filter(x => x.id !== c.id); S.courses.push(c); activeCourse = c.id; }
+        view = "classes"; closeSheet(); commit(); toast(`${add.length === 1 ? "Class" : add.length + " classes"} added. Connect ${add.length === 1 ? "it" : "them"} to your galaxies.`);
+      });
+    };
+  });
+}
+
+// ---------------- Taps ----------------
+function openGalaxy(id){ const g = gById(id); if (g) galaxySheet(g); }
+document.addEventListener("click", e => {
+  const t = e.target;
+  if (t.dataset && t.dataset.close){ closeSheet(); return; }
+  const gEl = t.closest("[data-g]");
+  if (gEl && !t.closest(".sheet-card")){ openGalaxy(gEl.dataset.g); return; }
+  const v = t.closest("[data-view]");
+  if (v && !t.closest(".sheet-card")){ e.preventDefault(); if (v.dataset.view === "file") fileSheet(); else { view = v.dataset.view; render(); scrollTo({top:0}); } return; }
+  const b = t.closest("button"); if (!b || b.closest(".sheet-card") && !b.dataset.close) return;
+  if (b.dataset.close) return closeSheet();
+  if (b.dataset.course){ activeCourse = b.dataset.course; render(); return; }
+  if (b.dataset.filter){ filter = b.dataset.filter; render(); return; }
+  if (b.dataset.goal){ target = +b.dataset.goal; render(); return; }
+  if (b.dataset.q){ const q = cur().quests.find(x => x.id === b.dataset.q); if (q) questSheet(q, false); return; }
+  if (b.dataset.study){ const s = S.study.find(x => x.id === b.dataset.study); if (s) studySheet(s, false); return; }
+  const a = b.dataset.act;
+  if (a === "own") ensureOwn(() => { view = "sky"; render(); galaxyEdit(null); });
+  else if (a === "goal") goalSheet();
+  else if (a === "new-galaxy") galaxyEdit(null);
+  else if (a === "add-study") S.galaxies.length ? studySheet({id:newId(), title:"", date:todayISO(), kind:"study", hours:1, galaxy:S.galaxies[0].id, outcome:null, note:""}, true) : galaxyEdit(null);
+  else if (a === "import") ensureOwn(() => { view = "classes"; render(); importSheet(); });
+  else if (a === "feeds") feedsSheet(cur());
+  else if (a === "course") courseSheet(cur());
+  else if (a === "add") questSheet({id:newId(), title:"", cat:(cur().categories?.[0]?.name)||"", due:null, max:100, score:null, done:false, extra:false, outcome:null}, true);
+});
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape" && !$("#sheet").hidden) closeSheet();
+  if ((e.key === "Enter" || e.key === " ") && e.target.matches && e.target.matches("g[data-g]")){ e.preventDefault(); openGalaxy(e.target.dataset.g); }
+});
+let toastT; function toast(m){ const t = $("#toast"); t.textContent = m; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, 2600); }
+let bannerT; function banner(big, small){ const b = $("#banner"); b.innerHTML = `${esc(big)}${small ? `<small>${esc(small)}</small>` : ""}`; b.hidden = false; clearTimeout(bannerT); bannerT = setTimeout(() => { b.hidden = true; }, 3400); }
+
+// ---------------- Start ----------------
+(function start(){
+  S = load() || exampleSky();
+  if (!S.example && !S.goal.title && !S.galaxies.length && S.courses.length) view = "classes";
+  before = snapshot();
+  drawScene();
+  render();
+})();
+
+</script>
+</body>
+</html>
